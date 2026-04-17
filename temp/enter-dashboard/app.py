@@ -102,6 +102,7 @@ Use as páginas na barra lateral para aprofundar:
 - **2 — Subsídios:** qual é o peso de cada documento (Contrato, Extrato, Dossiê...) na taxa de êxito.
 - **3 — Valores Financeiros:** distribuição de causa × condenação e onde estão as maiores exposições.
 - **4 — Modelo Preditivo:** Logistic + Random Forest + SHAP → qual é o fator que mais pesa **em conjunto**.
+- **5 — Agente Assistente do Advogado:** recomendação acionável por processo (defender/acordo), com justificativa, evidências e valor sugerido.
 """)
 
 # Atalho para amostra dos dados

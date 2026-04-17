@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.core.validators import RegexValidator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -142,3 +141,35 @@ class CaseDocument(TimeStampedModel):
 
 	def __str__(self):
 		return f'{self.case.numero_processo} - {self.document_type}'
+
+
+class CaseRecommendation(TimeStampedModel):
+	case = models.OneToOneField(
+		LegalCase,
+		on_delete=models.CASCADE,
+		related_name='recommendation',
+	)
+	agente_classificacao_risco = models.CharField(max_length=120)
+	probabilidade_perder_caso = models.DecimalField(
+		max_digits=5,
+		decimal_places=4,
+		validators=[MinValueValidator(0), MaxValueValidator(1)],
+	)
+	valor_esperado_condenacao = models.DecimalField(
+		max_digits=10,
+		decimal_places=2,
+		validators=[MinValueValidator(0)],
+	)
+	agente_sugestao_acordo = models.CharField(max_length=120)
+	sugestao_acao = models.CharField(max_length=13, choices=RECOMMENDATION_ACTION_CHOICES)
+	valor_para_acordo = models.DecimalField(
+		max_digits=10,
+		decimal_places=2,
+		validators=[MinValueValidator(0)],
+	)
+
+	class Meta:
+		ordering = ['-created_at']
+
+	def __str__(self):
+		return f'{self.case.numero_processo} - {self.sugestao_acao}'

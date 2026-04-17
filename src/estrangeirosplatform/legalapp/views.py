@@ -132,7 +132,7 @@ def _valor_desvio_pct(recommendation):
 		return None
 	if _is_agreement_accepted(recommendation) is not True:
 		return None
-	sugerido = recommendation.valor_para_acordo
+	sugerido = recommendation.valor_acordo
 	real = recommendation.case.valor_condenacao
 	if not sugerido:
 		return None

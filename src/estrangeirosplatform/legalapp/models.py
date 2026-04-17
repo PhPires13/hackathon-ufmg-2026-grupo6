@@ -13,14 +13,9 @@ CASE_DOCUMENT_TYPE_CHOICES = (
 	('LAUDO_REFERENCIA', 'LAUDO_REFERENCIA'),
 )
 
-RECOMMENDATION_ACTION_CHOICES = (
+ACTION_CHOICES = (
 	('DEFENDER', 'DEFENDER'),
 	('PROPOR_ACORDO', 'PROPOR_ACORDO')
-)
-
-LAWYER_DECISION_CHOICES = (
-	('ACEITA', 'ACEITA'),
-	('REJEITADA', 'REJEITADA'),
 )
 
 UF_CHOICES = (
@@ -87,8 +82,6 @@ class LegalCase(TimeStampedModel):
 	numero_processo = models.CharField(
 		max_length=25,
 		unique=True,
-		null=True,
-		blank=True,
 		validators=[
 			RegexValidator(
 				regex=r'^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$',
@@ -96,17 +89,15 @@ class LegalCase(TimeStampedModel):
 			)
 		],
 	)
-	uf = models.CharField(max_length=2, choices=UF_CHOICES)
+	uf = models.CharField(max_length=2, null=True, choices=UF_CHOICES)
 	assunto = models.CharField(
 		max_length=64,
+		null = True,
 		choices=ASSUNTO_CHOICES,
 		default='NAO_RECONHECE_OPERACAO',
 	)
-	sub_assunto = models.CharField(max_length=20, choices=SUB_ASSUNTO_CHOICES)
-	resultado_macro = models.CharField(max_length=12, choices=RESULTADO_MACRO_CHOICES)
-	resultado_micro = models.CharField(max_length=24, choices=RESULTADO_MICRO_CHOICES)
-	valor_causa = models.DecimalField(max_digits=10, decimal_places=2)
-	valor_condenacao = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+	sub_assunto = models.CharField(max_length=20, null=True, choices=SUB_ASSUNTO_CHOICES)
+	valor_causa = models.DecimalField(max_digits=10, decimal_places=2, null=True)
 
 	# Subsídios disponibilizados para o caso.
 	has_contrato = models.BooleanField(default=False)
@@ -154,7 +145,6 @@ class CaseRecommendation(TimeStampedModel):
 		on_delete=models.CASCADE,
 		related_name='recommendation',
 	)
-	agente_classificacao_risco = models.CharField(max_length=120)
 	probabilidade_perder_caso = models.DecimalField(
 		max_digits=5,
 		decimal_places=4,
@@ -165,23 +155,42 @@ class CaseRecommendation(TimeStampedModel):
 		decimal_places=2,
 		validators=[MinValueValidator(0)],
 	)
-	agente_sugestao_acordo = models.CharField(max_length=120)
-	sugestao_acao = models.CharField(max_length=13, choices=RECOMMENDATION_ACTION_CHOICES)
+	sugestao_acao = models.CharField(max_length=13, choices=ACTION_CHOICES)
 	valor_para_acordo = models.DecimalField(
 		max_digits=10,
 		decimal_places=2,
 		validators=[MinValueValidator(0)],
 	)
-	decisao_advogado = models.CharField(
-		max_length=9,
-		choices=LAWYER_DECISION_CHOICES,
-		null=True,
-		blank=True,
-	)
-	decisao_advogado_at = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
 		ordering = ['-created_at']
 
 	def __str__(self):
 		return f'{self.case.numero_processo} - {self.sugestao_acao}'
+
+
+class LawyerAction(TimeStampedModel):
+	case = models.OneToOneField(
+		LegalCase,
+		on_delete=models.CASCADE,
+		related_name='action',
+	)
+	acao = models.CharField(max_length=13, choices=ACTION_CHOICES)
+
+	# IF ACAO = PROPOR_ACORDO
+	valor_acordo = models.DecimalField(
+		max_digits=10,
+		decimal_places=2,
+		validators=[MinValueValidator(0)],
+	)
+
+	# IF ACAO = DEFENDER
+	resultado_macro = models.CharField(max_length=12, null=True, choices=RESULTADO_MACRO_CHOICES)
+	resultado_micro = models.CharField(max_length=24, null=True, choices=RESULTADO_MICRO_CHOICES)
+	valor_condenacao = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+
+	class Meta:
+		ordering = ['-created_at']
+
+	def __str__(self):
+		return f'{self.case.numero_processo} - {self.acao}'

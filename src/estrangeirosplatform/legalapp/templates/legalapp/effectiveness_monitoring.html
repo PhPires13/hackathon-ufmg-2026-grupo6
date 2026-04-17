@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Efetividade</title>
+    <style>
+        :root {
+            --paper: #f6f3ee;
+            --ink: #1f2421;
+            --accent: #bd632f;
+            --accent-2: #2f6f79;
+            --green: #2d6a4f;
+            --green-bg: #d8f3dc;
+            --red: #b6463a;
+            --red-bg: #fdeeee;
+            --cyan: #0891b2;
+            --cyan-bg: #cffafe;
+            --card: #fffdfa;
+            --line: #d9cfc3;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at 20% 10%, #fff8ec 0%, var(--paper) 45%, #ece7df 100%);
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem 3rem;
+        }
+
+        header {
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: clamp(1.4rem, 3vw, 1.9rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.3rem;
+        }
+
+        .subtitle {
+            color: #4d5752;
+            font-size: 0.93rem;
+        }
+
+        /* KPI cards */
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            animation: reveal 380ms ease-out;
+        }
+
+        .kpi-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6a6f6d;
+            margin-bottom: 0.4rem;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            word-break: break-word;
+        }
+
+        .kpi-sub {
+            display: block;
+            font-size: 0.8rem;
+            color: #6a6f6d;
+            margin-top: 0.25rem;
+        }
+
+        .kpi.green .kpi-value { color: var(--green); }
+        .kpi.red   .kpi-value { color: var(--red); }
+        .kpi.cyan  .kpi-value { color: var(--cyan); }
+        .kpi.orange .kpi-value { color: var(--accent); }
+
+        /* Table */
+        .table-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+            animation: reveal 420ms ease-out;
+        }
+
+        .table-card h2 {
+            padding: 0.9rem 1.1rem;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--line);
+            background: #faf6f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        thead th {
+            padding: 0.65rem 0.9rem;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6a6f6d;
+            border-bottom: 1px solid var(--line);
+            background: #faf6f0;
+        }
+
+        tbody td {
+            padding: 0.65rem 0.9rem;
+            border-bottom: 1px solid #ece7dd;
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: #faf7f3;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .badge.aceito   { background: var(--green-bg);  color: var(--green); }
+        .badge.rejeitado { background: var(--red-bg);   color: var(--red); }
+        .badge.na       { background: #ece7df;          color: #6a6f6d; }
+
+        .currency {
+            font-family: "IBM Plex Mono", monospace;
+            font-weight: 600;
+        }
+
+        .no-data {
+            padding: 2rem;
+            text-align: center;
+            color: #6a6f6d;
+        }
+
+        @keyframes reveal {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <header>
+        <h1>Monitoramento de Efetividade</h1>
+        <p class="subtitle">
+            Avalua o impacto das recomendacoes em economia gerada, taxa de aceitacao de acordos e condenacoes evitadas.
+        </p>
+    </header>
+
+    <!-- KPIs -->
+    <section class="kpis">
+        <div class="kpi cyan">
+            <span class="kpi-label">Taxa de aceitacao de acordos</span>
+            <span class="kpi-value">{{ taxa_aceitacao_pct }}%</span>
+            <span class="kpi-sub">{{ acordos_aceitos }} de {{ acordos_sugeridos }} acordos</span>
+        </div>
+
+        <div class="kpi green">
+            <span class="kpi-label">Economia total efetiva</span>
+            <span class="kpi-value currency">{{ economia_total_efetiva }}</span>
+            <span class="kpi-sub">realizado com acordos + defesas</span>
+        </div>
+
+        <div class="kpi orange">
+            <span class="kpi-label">Economia media por acordo</span>
+            <span class="kpi-value currency">{{ economia_media_acordo }}</span>
+            <span class="kpi-sub">quando acordo foi aceito</span>
+        </div>
+
+        <div class="kpi red">
+            <span class="kpi-label">Condenacoes evitadas</span>
+            <span class="kpi-value currency">{{ condenacoes_evitadas }}</span>
+            <span class="kpi-sub">via defesas bem-sucedidas</span>
+        </div>
+    </section>
+
+    <div class="table-card">
+        <h2>Detalhe por processo</h2>
+        {% if rows %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Processo</th>
+                    <th>Sugestao</th>
+                    <th>Status do acordo</th>
+                    <th>Valor esperado</th>
+                    <th>Valor realizado</th>
+                    <th>Economia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.numero_processo }}</td>
+                    <td>{{ row.sugestao }}</td>
+                    <td>
+                        {% if row.status_acordo == "Aceito" %}
+                            <span class="badge aceito">Aceito</span>
+                        {% elif row.status_acordo == "Rejeitado" %}
+                            <span class="badge rejeitado">Rejeitado</span>
+                        {% else %}
+                            <span class="badge na">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="currency">{{ row.valor_esperado }}</td>
+                    <td class="currency">{{ row.valor_realizado }}</td>
+                    <td class="currency" style="font-weight: 700; color: #2d6a4f;">{{ row.economia }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p class="no-data">Nenhum caso com recomendacao cadastrada.</p>
+        {% endif %}
+    </div>
+</main>
+</body>
+</html>

@@ -149,3 +149,103 @@ class AdherenceMonitoringViewTests(TestCase):
 		self.assertEqual(ctx['valores_proximos'], 1)
 		self.assertEqual(ctx['acordos_com_valor_avaliavel'], 1)
 		self.assertAlmostEqual(ctx['valor_proximo_pct'], 100.0, places=0)
+
+
+@override_settings(ROOT_URLCONF='legalapp.urls')
+class EffectivenessMonitoringViewTests(TestCase):
+	def setUp(self):
+		# Caso 1: Acordo sugerido e aceito com economia
+		case1 = LegalCase.objects.create(
+			numero_processo='2000001-00.2025.8.06.0001',
+			uf='MG',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GOLPE',
+			resultado_macro='NAO_EXITO',
+			resultado_micro='ACORDO',
+			valor_causa=Decimal('10000.00'),
+			valor_condenacao=Decimal('2200.00'),
+		)
+		CaseRecommendation.objects.create(
+			case=case1,
+			agente_classificacao_risco='modelo-risco-v1',
+			probabilidade_perder_caso=Decimal('0.6500'),
+			valor_esperado_condenacao=Decimal('5000.00'),
+			agente_sugestao_acordo='modelo-acordo-v1',
+			sugestao_acao='PROPOR_ACORDO',
+			valor_para_acordo=Decimal('2500.00'),
+		)
+
+		# Caso 2: Acordo sugerido mas rejeitado
+		case2 = LegalCase.objects.create(
+			numero_processo='2000002-00.2025.8.06.0001',
+			uf='SP',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GOLPE',
+			resultado_macro='NAO_EXITO',
+			resultado_micro='IMPROCEDENCIA',
+			valor_causa=Decimal('8000.00'),
+			valor_condenacao=Decimal('0.00'),
+		)
+		CaseRecommendation.objects.create(
+			case=case2,
+			agente_classificacao_risco='modelo-risco-v1',
+			probabilidade_perder_caso=Decimal('0.7500'),
+			valor_esperado_condenacao=Decimal('4500.00'),
+			agente_sugestao_acordo='modelo-acordo-v1',
+			sugestao_acao='PROPOR_ACORDO',
+			valor_para_acordo=Decimal('2000.00'),
+		)
+
+		# Caso 3: Defesa sugerida e mantida (condenacao evitada)
+		case3 = LegalCase.objects.create(
+			numero_processo='2000003-00.2025.8.06.0001',
+			uf='RJ',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GENERICO',
+			resultado_macro='EXITO',
+			resultado_micro='PROCEDENCIA',
+			valor_causa=Decimal('7000.00'),
+			valor_condenacao=Decimal('0.00'),
+		)
+		CaseRecommendation.objects.create(
+			case=case3,
+			agente_classificacao_risco='modelo-risco-v1',
+			probabilidade_perder_caso=Decimal('0.3000'),
+			valor_esperado_condenacao=Decimal('3000.00'),
+			agente_sugestao_acordo='modelo-acordo-v1',
+			sugestao_acao='DEFENDER',
+			valor_para_acordo=Decimal('0.00'),
+		)
+
+	def test_effectiveness_monitoring_renders(self):
+		response = self.client.get('/monitoramento-efetividade/')
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Monitoramento de Efetividade')
+
+	def test_acceptance_rate_calculation(self):
+		response = self.client.get('/monitoramento-efetividade/')
+		ctx = response.context
+
+		# 2 acordos sugeridos, 1 aceito = 50%
+		self.assertEqual(ctx['acordos_sugeridos'], 2)
+		self.assertEqual(ctx['acordos_aceitos'], 1)
+		self.assertEqual(ctx['acordos_rejeitados'], 1)
+		self.assertAlmostEqual(ctx['taxa_aceitacao_pct'], 50.0, places=0)
+
+	def test_estimated_savings_calculation(self):
+		response = self.client.get('/monitoramento-efetividade/')
+		ctx = response.context
+
+		# Caso 1: 5000 (esperado) - 2200 (realizado) = 2800 economia efetiva
+		# Caso 2: acordo rejeitado, nao conta economia efetiva
+		# Caso 3: 3000 (esperado) - 0 (realizado) = 3000 economia (defesa bem-sucedida)
+		# Total efetivo: 2800 + 3000 = 5800
+		self.assertIn('5', ctx['economia_total_efetiva'])  # R$ 5.800,00
+
+	def test_damage_reduction(self):
+		response = self.client.get('/monitoramento-efetividade/')
+		ctx = response.context
+
+		# Condenacoes evitadas: Caso 3 (defesa bem-sucedida) = 3000
+		self.assertIn('3', ctx['condenacoes_evitadas'])

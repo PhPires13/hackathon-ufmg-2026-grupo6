@@ -240,3 +240,97 @@ def lawyer_assistant_view(request):
 		}
 
 	return render(request, 'legalapp/lawyer_assistant.html', context)
+
+
+def effectiveness_monitoring_view(request):
+	recommendations = (
+		CaseRecommendation.objects.select_related('case')
+		.order_by('-created_at')
+	)
+
+	total = recommendations.count()
+	acordos_sugeridos = 0
+	acordos_aceitos = 0
+	acordos_rejeitados = 0
+	total_economia = 0
+	total_economia_efetiva = 0
+	casos_com_nova_condenacao = 0
+	total_condenacoes_evitadas = 0
+
+	rows = []
+	for rec in recommendations:
+		acordo_sugerido = rec.sugestao_acao == 'PROPOR_ACORDO'
+		acordo_realizado = rec.case.resultado_micro == 'ACORDO'
+		
+		if acordo_sugerido:
+			acordos_sugeridos += 1
+			# economia potencial: valor esperado - valor sugerido
+			economia_potencial = rec.valor_esperado_condenacao - rec.valor_para_acordo
+			total_economia += economia_potencial
+			
+			if acordo_realizado:
+				acordos_aceitos += 1
+				# economia efetiva: valor esperado - valor real pago
+				economia_efetiva = rec.valor_esperado_condenacao - rec.case.valor_condenacao
+				total_economia_efetiva += economia_efetiva
+			else:
+				acordos_rejeitados += 1
+		
+		# para défesa sugerida e mantida (sem acordo)
+		if (
+			rec.sugestao_acao == 'DEFENDER'
+			and rec.case.resultado_micro != 'ACORDO'
+		):
+			casos_com_nova_condenacao += 1
+			# economia em relação à expectativa
+			condenacao_evitada = rec.valor_esperado_condenacao - rec.case.valor_condenacao
+			economia_defesa = max(0, condenacao_evitada)
+			total_condenacoes_evitadas += economia_defesa
+			total_economia_efetiva += economia_defesa
+		
+		# monta linha de tabela
+		acordo_status = '—'
+		economia_valor = 0
+		
+		if acordo_sugerido:
+			economia_valor = rec.valor_esperado_condenacao - rec.case.valor_condenacao
+			acordo_status = 'Aceito' if acordo_realizado else 'Rejeitado'
+		else:
+			# defesa
+			acordo_status = 'N/A'
+			economia_valor = max(0, rec.valor_esperado_condenacao - rec.case.valor_condenacao)
+		
+		rows.append({
+			'numero_processo': rec.case.numero_processo,
+			'sugestao': 'ACORDO' if acordo_sugerido else 'DEFESA',
+			'status_acordo': acordo_status,
+			'valor_esperado': _format_currency(rec.valor_esperado_condenacao),
+			'valor_realizado': _format_currency(rec.case.valor_condenacao),
+			'economia': _format_currency(economia_valor),
+			'economia_valor_raw': float(economia_valor),
+		})
+		
+	# calcula taxas
+	taxa_aceitacao_acordos = 0
+	if acordos_sugeridos:
+		taxa_aceitacao_acordos = (acordos_aceitos / acordos_sugeridos) * 100
+		
+	# economia média por caso com acordo bem-sucedido
+	economia_media_acordo = 0
+	if acordos_aceitos:
+		economia_media_acordo = total_economia_efetiva / acordos_aceitos
+		
+	context = {
+		'total_casos': total,
+		'acordos_sugeridos': acordos_sugeridos,
+		'acordos_aceitos': acordos_aceitos,
+		'acordos_rejeitados': acordos_rejeitados,
+		'taxa_aceitacao_pct': round(taxa_aceitacao_acordos, 1),
+		'economia_total_potencial': _format_currency(total_economia),
+		'economia_total_efetiva': _format_currency(total_economia_efetiva),
+		'economia_media_acordo': _format_currency(economia_media_acordo),
+		'condenacoes_evitadas': _format_currency(total_condenacoes_evitadas),
+		'rows': rows,
+	}
+
+	return render(request, 'legalapp/effectiveness_monitoring.html', context)

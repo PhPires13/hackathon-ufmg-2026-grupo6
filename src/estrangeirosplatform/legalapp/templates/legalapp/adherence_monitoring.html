@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Aderencia</title>
+    <style>
+        :root {
+            --paper: #f6f3ee;
+            --ink: #1f2421;
+            --accent: #bd632f;
+            --accent-2: #2f6f79;
+            --green: #2d6a4f;
+            --green-bg: #d8f3dc;
+            --red: #b6463a;
+            --red-bg: #fdeeee;
+            --warn: #7b5e00;
+            --warn-bg: #fff3cd;
+            --card: #fffdfa;
+            --line: #d9cfc3;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at 20% 10%, #fff8ec 0%, var(--paper) 45%, #ece7df 100%);
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem 3rem;
+        }
+
+        header {
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: clamp(1.4rem, 3vw, 1.9rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.3rem;
+        }
+
+        .subtitle {
+            color: #4d5752;
+            font-size: 0.93rem;
+        }
+
+        /* KPI cards */
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            animation: reveal 380ms ease-out;
+        }
+
+        .kpi-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6a6f6d;
+            margin-bottom: 0.4rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+
+        .kpi-sub {
+            display: block;
+            font-size: 0.8rem;
+            color: #6a6f6d;
+            margin-top: 0.25rem;
+        }
+
+        .kpi.green .kpi-value { color: var(--green); }
+        .kpi.red   .kpi-value { color: var(--red); }
+        .kpi.blue  .kpi-value { color: var(--accent-2); }
+        .kpi.orange .kpi-value { color: var(--accent); }
+
+        /* Progress bar */
+        .bar-wrap {
+            background: #ece7df;
+            border-radius: 999px;
+            height: 10px;
+            margin-top: 0.55rem;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--green), #52b788);
+            transition: width 600ms ease;
+        }
+
+        /* Table */
+        .table-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+            animation: reveal 420ms ease-out;
+        }
+
+        .table-card h2 {
+            padding: 0.9rem 1.1rem;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--line);
+            background: #faf6f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        thead th {
+            padding: 0.65rem 0.9rem;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6a6f6d;
+            border-bottom: 1px solid var(--line);
+            background: #faf6f0;
+        }
+
+        tbody td {
+            padding: 0.65rem 0.9rem;
+            border-bottom: 1px solid #ece7dd;
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: #faf7f3;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .badge.aderiu    { background: var(--green-bg); color: var(--green); }
+        .badge.nao      { background: var(--red-bg);   color: var(--red); }
+        .badge.proximo  { background: var(--green-bg); color: var(--green); }
+        .badge.longe    { background: var(--warn-bg);  color: var(--warn); }
+        .badge.na       { background: #ece7df;         color: #6a6f6d; }
+
+        .no-data {
+            padding: 2rem;
+            text-align: center;
+            color: #6a6f6d;
+        }
+
+        @keyframes reveal {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <header>
+        <h1>Monitoramento de Aderencia</h1>
+        <p class="subtitle">
+            Avalia em que medida os desfechos reais seguiram as recomendacoes do agente.
+            Threshold de valor &ldquo;proximo&rdquo;: &le; {{ threshold }}%.
+        </p>
+    </header>
+
+    <!-- KPIs -->
+    <section class="kpis">
+        <div class="kpi green">
+            <span class="kpi-label">Aderencia geral</span>
+            <span class="kpi-value">{{ aderencia_pct }}%</span>
+            <span class="kpi-sub">{{ aderiu_count }} de {{ total }} casos</span>
+            <div class="bar-wrap">
+                <div class="bar-fill" style="width: {{ aderencia_pct }}%"></div>
+            </div>
+        </div>
+
+        <div class="kpi blue">
+            <span class="kpi-label">Acordos sugeridos e realizados</span>
+            <span class="kpi-value">{{ acordo_sugerido_e_feito }}</span>
+            <span class="kpi-sub">casos que seguiram sugestao de acordo</span>
+        </div>
+
+        <div class="kpi orange">
+            <span class="kpi-label">Valor proximo do sugerido</span>
+            <span class="kpi-value">{{ valor_proximo_pct }}%</span>
+            <span class="kpi-sub">{{ valores_proximos }} de {{ acordos_com_valor_avaliavel }} acordos avaliados</span>
+        </div>
+
+        <div class="kpi red">
+            <span class="kpi-label">Nao aderencia</span>
+            <span class="kpi-value">{{ nao_aderiu_count }}</span>
+            <span class="kpi-sub">casos que divergiram da recomendacao</span>
+        </div>
+    </section>
+
+    <!-- Tabela por processo -->
+    <div class="table-card">
+        <h2>Detalhe por processo</h2>
+        {% if rows %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Processo</th>
+                    <th>Sugestao</th>
+                    <th>Resultado</th>
+                    <th>Aderencia</th>
+                    <th>Valor sugerido</th>
+                    <th>Valor real</th>
+                    <th>Desvio</th>
+                    <th>Valor proximo?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.numero_processo }}</td>
+                    <td>{{ row.sugestao }}</td>
+                    <td>{{ row.resultado }}</td>
+                    <td>
+                        {% if row.aderiu %}
+                            <span class="badge aderiu">Aderiu</span>
+                        {% else %}
+                            <span class="badge nao">Nao aderiu</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ row.valor_sugerido }}</td>
+                    <td>{{ row.valor_real }}</td>
+                    <td>{{ row.desvio_pct }}</td>
+                    <td>
+                        {% if row.desvio_pct == "—" %}
+                            <span class="badge na">N/A</span>
+                        {% elif row.valor_proximo %}
+                            <span class="badge proximo">Proximo</span>
+                        {% else %}
+                            <span class="badge longe">Distante</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p class="no-data">Nenhum caso com recomendacao cadastrada.</p>
+        {% endif %}
+    </div>
+</main>
+</body>
+</html>

@@ -75,3 +75,77 @@ class LawyerAssistantViewTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Processo nao encontrado ou sem recomendacao cadastrada.')
+
+
+@override_settings(ROOT_URLCONF='legalapp.urls')
+class AdherenceMonitoringViewTests(TestCase):
+	def _make_case(self, numero, resultado_micro, valor_condenacao):
+		return LegalCase.objects.create(
+			numero_processo=numero,
+			uf='MG',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GOLPE',
+			resultado_macro='NAO_EXITO',
+			resultado_micro=resultado_micro,
+			valor_causa=Decimal('10000.00'),
+			valor_condenacao=valor_condenacao,
+		)
+
+	def _make_recommendation(self, case, sugestao_acao, valor_para_acordo):
+		return CaseRecommendation.objects.create(
+			case=case,
+			agente_classificacao_risco='modelo-risco-v1',
+			probabilidade_perder_caso=Decimal('0.6000'),
+			valor_esperado_condenacao=Decimal('3000.00'),
+			agente_sugestao_acordo='modelo-acordo-v1',
+			sugestao_acao=sugestao_acao,
+			valor_para_acordo=valor_para_acordo,
+		)
+
+	def setUp(self):
+		# Caso 1: sugeriu ACORDO, fez ACORDO, valor proximo (5% desvio)
+		case1 = self._make_case('1000001-00.2025.8.06.0001', 'ACORDO', Decimal('2100.00'))
+		self._make_recommendation(case1, 'PROPOR_ACORDO', Decimal('2000.00'))
+
+		# Caso 2: sugeriu ACORDO, nao fez ACORDO (nao aderiu)
+		case2 = self._make_case('1000002-00.2025.8.06.0001', 'IMPROCEDENCIA', Decimal('0.00'))
+		self._make_recommendation(case2, 'PROPOR_ACORDO', Decimal('1500.00'))
+
+		# Caso 3: sugeriu DEFESA, nao fez ACORDO (aderiu)
+		case3 = self._make_case('1000003-00.2025.8.06.0001', 'IMPROCEDENCIA', Decimal('0.00'))
+		self._make_recommendation(case3, 'DEFENDER', Decimal('0.00'))
+
+	def test_adherence_monitoring_renders(self):
+		response = self.client.get('/monitoramento-aderencia/')
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Monitoramento de Aderencia')
+
+	def test_adherence_metrics_are_correct(self):
+		response = self.client.get('/monitoramento-aderencia/')
+		ctx = response.context
+
+		# 3 casos com recomendacao
+		self.assertEqual(ctx['total'], 3)
+		# caso1 (acordo aderiu) + caso3 (defesa aderiu) = 2
+		self.assertEqual(ctx['aderiu_count'], 2)
+		# caso2 nao aderiu
+		self.assertEqual(ctx['nao_aderiu_count'], 1)
+		# aderencia = 2/3 = 66.7%
+		self.assertAlmostEqual(ctx['aderencia_pct'], 66.7, places=0)
+
+	def test_acordo_sugerido_e_feito(self):
+		response = self.client.get('/monitoramento-aderencia/')
+		ctx = response.context
+
+		# apenas caso1 sugeriu e fez acordo
+		self.assertEqual(ctx['acordo_sugerido_e_feito'], 1)
+
+	def test_valor_proximo_do_sugerido(self):
+		response = self.client.get('/monitoramento-aderencia/')
+		ctx = response.context
+
+		# caso1: desvio 5% (dentro do threshold de 20%) -> proximo
+		self.assertEqual(ctx['valores_proximos'], 1)
+		self.assertEqual(ctx['acordos_com_valor_avaliavel'], 1)
+		self.assertAlmostEqual(ctx['valor_proximo_pct'], 100.0, places=0)

@@ -106,6 +106,102 @@ def _build_justification(legal_case, recommendation):
 	)
 
 
+_VALOR_PROXIMO_THRESHOLD = 20  # desvio maximo em % para considerar valor "proximo"
+
+
+def _adherence_status(recommendation):
+	"""Retorna 'aderiu', 'nao_aderiu' ou 'sem_resultado'."""
+	resultado = recommendation.case.resultado_micro
+	if not resultado:
+		return 'sem_resultado'
+	if recommendation.sugestao_acao == 'PROPOR_ACORDO':
+		return 'aderiu' if resultado == 'ACORDO' else 'nao_aderiu'
+	# DEFENDER
+	return 'aderiu' if resultado != 'ACORDO' else 'nao_aderiu'
+
+
+def _valor_desvio_pct(recommendation):
+	"""Desvio % entre valor_condenacao e valor_para_acordo.
+	Retorna None quando nao se aplica.
+	"""
+	if recommendation.sugestao_acao != 'PROPOR_ACORDO':
+		return None
+	if recommendation.case.resultado_micro != 'ACORDO':
+		return None
+	sugerido = recommendation.valor_para_acordo
+	real = recommendation.case.valor_condenacao
+	if not sugerido:
+		return None
+	return float(abs(real - sugerido) / sugerido * 100)
+
+
+def adherence_monitoring_view(request):
+	recommendations = (
+		CaseRecommendation.objects.select_related('case')
+		.order_by('-created_at')
+	)
+
+	total = recommendations.count()
+	aderiu_count = 0
+	acordo_sugerido_e_feito = 0
+	valores_proximos = 0
+	acordos_com_valor_avaliavel = 0
+
+	rows = []
+	for rec in recommendations:
+		status = _adherence_status(rec)
+		desvio = _valor_desvio_pct(rec)
+
+		aderiu = status == 'aderiu'
+		if aderiu:
+			aderiu_count += 1
+
+		acordo_feito = (
+			rec.sugestao_acao == 'PROPOR_ACORDO'
+			and rec.case.resultado_micro == 'ACORDO'
+		)
+		if acordo_feito:
+			acordo_sugerido_e_feito += 1
+
+		if desvio is not None:
+			acordos_com_valor_avaliavel += 1
+			if desvio <= _VALOR_PROXIMO_THRESHOLD:
+				valores_proximos += 1
+
+		rows.append({
+			'numero_processo': rec.case.numero_processo,
+			'sugestao': 'ACORDO' if rec.sugestao_acao == 'PROPOR_ACORDO' else 'DEFESA',
+			'resultado': rec.case.resultado_micro,
+			'aderiu': aderiu,
+			'status_label': 'Aderiu' if aderiu else ('Nao avaliavel' if status == 'sem_resultado' else 'Nao aderiu'),
+			'valor_sugerido': _format_currency(rec.valor_para_acordo),
+			'valor_real': _format_currency(rec.case.valor_condenacao),
+			'desvio_pct': f'{desvio:.1f}%' if desvio is not None else '—',
+			'valor_proximo': (desvio is not None and desvio <= _VALOR_PROXIMO_THRESHOLD),
+		})
+
+	aderencia_pct = (aderiu_count / total * 100) if total else 0
+	valor_proximo_pct = (
+		(valores_proximos / acordos_com_valor_avaliavel * 100)
+		if acordos_com_valor_avaliavel else 0
+	)
+
+	context = {
+		'total': total,
+		'aderiu_count': aderiu_count,
+		'nao_aderiu_count': total - aderiu_count,
+		'aderencia_pct': round(aderencia_pct, 1),
+		'acordo_sugerido_e_feito': acordo_sugerido_e_feito,
+		'valores_proximos': valores_proximos,
+		'acordos_com_valor_avaliavel': acordos_com_valor_avaliavel,
+		'valor_proximo_pct': round(valor_proximo_pct, 1),
+		'threshold': _VALOR_PROXIMO_THRESHOLD,
+		'rows': rows,
+	}
+
+	return render(request, 'legalapp/adherence_monitoring.html', context)
+
+
 def lawyer_assistant_view(request):
 	case_number = (request.GET.get('processo') or '').strip()
 	recommendation = None

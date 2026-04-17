@@ -6,7 +6,7 @@ from django.db.models import CharField
 from .models import LegalCase
 
 
-def legal_case_list(request):
+def legal_cases_page(request):
 	query = request.GET.get('q', '').strip()
 	cases = LegalCase.objects.select_related('recommendation', 'action')
 
@@ -38,4 +38,9 @@ def legal_case_list(request):
 			)
 		)
 
-	return render(request, 'legalapp/legalcases.html', {'cases': cases, 'query': query})
+	return render(request, 'legalapp/legal-cases.html', {'cases': cases, 'query': query})
+
+
+def create_case_page(request):
+	return render(request, 'legalapp/create-case.html')
+

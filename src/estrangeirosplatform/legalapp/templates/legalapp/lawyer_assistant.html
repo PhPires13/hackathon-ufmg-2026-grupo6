@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente do Advogado</title>
+    <style>
+        :root {
+            --paper: #f6f3ee;
+            --ink: #1f2421;
+            --accent: #bd632f;
+            --accent-2: #2f6f79;
+            --danger: #b6463a;
+            --card: #fffdfa;
+            --line: #d9cfc3;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at 20% 10%, #fff8ec 0%, var(--paper) 45%, #ece7df 100%);
+        }
+
+        .page {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 2rem 1rem 3rem;
+        }
+
+        .hero {
+            border: 1px solid var(--line);
+            background: linear-gradient(135deg, #f9efe0, #fffdfa);
+            border-radius: 18px;
+            padding: 1.5rem;
+            box-shadow: 0 18px 40px rgba(31, 36, 33, 0.08);
+            animation: reveal 420ms ease-out;
+        }
+
+        h1 {
+            margin: 0 0 0.4rem;
+            font-size: clamp(1.45rem, 3.2vw, 2rem);
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: #4d5752;
+        }
+
+        .search {
+            margin-top: 1.25rem;
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .search input {
+            flex: 1 1 320px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 0.7rem 0.85rem;
+            font-size: 0.96rem;
+            background: #fff;
+        }
+
+        .search button {
+            border: 0;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), #cf8357);
+            color: #fff;
+            padding: 0.7rem 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .alert {
+            margin-top: 1rem;
+            border-radius: 10px;
+            border: 1px solid #e6c2bd;
+            color: #7f2f28;
+            background: #fdeeee;
+            padding: 0.75rem 0.9rem;
+        }
+
+        .panel {
+            margin-top: 1.2rem;
+            display: grid;
+            gap: 1rem;
+            animation: reveal 420ms ease-out;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+        }
+
+        .decision {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.83rem;
+            padding: 0.33rem 0.7rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.6rem;
+            background: #f2ece3;
+            color: var(--ink);
+        }
+
+        .decision.agreement {
+            background: #f6dfcf;
+            color: #6a2f07;
+        }
+
+        .decision.defense {
+            background: #dbeff2;
+            color: #1d4f58;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.7rem;
+        }
+
+        .stat {
+            background: #faf6f0;
+            border: 1px dashed #d2c6b8;
+            border-radius: 10px;
+            padding: 0.7rem 0.8rem;
+        }
+
+        .label {
+            display: block;
+            font-size: 0.77rem;
+            text-transform: uppercase;
+            color: #6a6f6d;
+            margin-bottom: 0.2rem;
+            letter-spacing: 0.05em;
+        }
+
+        .value {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .evidence-list {
+            margin: 0;
+            padding-left: 1.15rem;
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <h1>Assistente do Advogado</h1>
+            <p class="subtitle">Recomendacao orientada por dados historicos e evidencias do processo.</p>
+
+            <form class="search" method="get">
+                <input
+                    type="text"
+                    name="processo"
+                    value="{{ case_number }}"
+                    placeholder="Informe o numero CNJ do processo"
+                >
+                <button type="submit">Analisar</button>
+            </form>
+
+            {% if lookup_error %}
+                <div class="alert">{{ lookup_error }}</div>
+            {% endif %}
+
+            {% if assistant_data %}
+                <section class="panel">
+                    <article class="card">
+                        <span class="decision {% if assistant_data.decisao_sugerida == 'ACORDO' %}agreement{% else %}defense{% endif %}">
+                            Decisao sugerida: {{ assistant_data.decisao_sugerida }}
+                        </span>
+                        <h2>Processo {{ assistant_data.numero_processo }}</h2>
+                        <p>{{ assistant_data.justificativa }}</p>
+                    </article>
+
+                    <article class="card stats">
+                        <div class="stat">
+                            <span class="label">Valor sugerido de acordo</span>
+                            <span class="value">{{ assistant_data.valor_acordo }}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="label">Valor esperado de condenacao</span>
+                            <span class="value">{{ assistant_data.valor_esperado }}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="label">Agente de risco</span>
+                            <span class="value">{{ assistant_data.agente_classificacao_risco }}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="label">Agente de acordo</span>
+                            <span class="value">{{ assistant_data.agente_sugestao_acordo }}</span>
+                        </div>
+                    </article>
+
+                    <article class="card">
+                        <h3>Evidencias do processo</h3>
+                        <ul class="evidence-list">
+                            {% for evidence in assistant_data.evidencias %}
+                                <li>{{ evidence }}</li>
+                            {% endfor %}
+                        </ul>
+                    </article>
+                </section>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.utils import timezone
 
 from .models import CaseDocument, CaseRecommendation, LegalCase
 
@@ -111,13 +112,11 @@ _VALOR_PROXIMO_THRESHOLD = 20  # desvio maximo em % para considerar valor "proxi
 
 def _adherence_status(recommendation):
 	"""Retorna 'aderiu', 'nao_aderiu' ou 'sem_resultado'."""
-	resultado = recommendation.case.resultado_micro
-	if not resultado:
-		return 'sem_resultado'
-	if recommendation.sugestao_acao == 'PROPOR_ACORDO':
-		return 'aderiu' if resultado == 'ACORDO' else 'nao_aderiu'
-	# DEFENDER
-	return 'aderiu' if resultado != 'ACORDO' else 'nao_aderiu'
+	if recommendation.decisao_advogado == 'ACEITA':
+		return 'aderiu'
+	if recommendation.decisao_advogado == 'REJEITADA':
+		return 'nao_aderiu'
+	return 'sem_resultado'
 
 
 def _valor_desvio_pct(recommendation):
@@ -126,13 +125,21 @@ def _valor_desvio_pct(recommendation):
 	"""
 	if recommendation.sugestao_acao != 'PROPOR_ACORDO':
 		return None
-	if recommendation.case.resultado_micro != 'ACORDO':
+	if _is_agreement_accepted(recommendation) is not True:
 		return None
 	sugerido = recommendation.valor_para_acordo
 	real = recommendation.case.valor_condenacao
 	if not sugerido:
 		return None
 	return float(abs(real - sugerido) / sugerido * 100)
+
+
+def _is_agreement_accepted(recommendation):
+	if recommendation.decisao_advogado == 'ACEITA':
+		return True
+	if recommendation.decisao_advogado == 'REJEITADA':
+		return False
+	return None
 
 
 def adherence_monitoring_view(request):
@@ -143,6 +150,7 @@ def adherence_monitoring_view(request):
 
 	total = recommendations.count()
 	aderiu_count = 0
+	nao_aderiu_count = 0
 	acordo_sugerido_e_feito = 0
 	valores_proximos = 0
 	acordos_com_valor_avaliavel = 0
@@ -155,10 +163,12 @@ def adherence_monitoring_view(request):
 		aderiu = status == 'aderiu'
 		if aderiu:
 			aderiu_count += 1
+		elif status == 'nao_aderiu':
+			nao_aderiu_count += 1
 
 		acordo_feito = (
 			rec.sugestao_acao == 'PROPOR_ACORDO'
-			and rec.case.resultado_micro == 'ACORDO'
+			and _is_agreement_accepted(rec) is True
 		)
 		if acordo_feito:
 			acordo_sugerido_e_feito += 1
@@ -189,7 +199,8 @@ def adherence_monitoring_view(request):
 	context = {
 		'total': total,
 		'aderiu_count': aderiu_count,
-		'nao_aderiu_count': total - aderiu_count,
+		'nao_aderiu_count': nao_aderiu_count,
+		'sem_resultado_count': total - aderiu_count - nao_aderiu_count,
 		'aderencia_pct': round(aderencia_pct, 1),
 		'acordo_sugerido_e_feito': acordo_sugerido_e_feito,
 		'valores_proximos': valores_proximos,
@@ -203,9 +214,10 @@ def adherence_monitoring_view(request):
 
 
 def lawyer_assistant_view(request):
-	case_number = (request.GET.get('processo') or '').strip()
+	case_number = (request.GET.get('processo') or request.POST.get('processo') or '').strip()
 	recommendation = None
 	lookup_error = None
+	action_feedback = None
 
 	if case_number:
 		recommendation = (
@@ -223,10 +235,28 @@ def lawyer_assistant_view(request):
 	context = {
 		'case_number': case_number,
 		'lookup_error': lookup_error,
+		'action_feedback': action_feedback,
 		'assistant_data': None,
 	}
 
 	if recommendation:
+		if request.method == 'POST':
+			decision = request.POST.get('decision')
+			if decision in {'ACEITA', 'REJEITADA'}:
+				recommendation.decisao_advogado = decision
+				recommendation.decisao_advogado_at = timezone.now()
+				recommendation.save(update_fields=['decisao_advogado', 'decisao_advogado_at', 'updated_at'])
+				action_feedback = (
+					'Decisao registrada: recomendacao aceita.'
+					if decision == 'ACEITA'
+					else 'Decisao registrada: recomendacao rejeitada.'
+				)
+			elif decision == 'LIMPAR':
+				recommendation.decisao_advogado = None
+				recommendation.decisao_advogado_at = None
+				recommendation.save(update_fields=['decisao_advogado', 'decisao_advogado_at', 'updated_at'])
+				action_feedback = 'Decisao do advogado removida.'
+
 		legal_case = recommendation.case
 		context['assistant_data'] = {
 			'numero_processo': legal_case.numero_processo,
@@ -237,7 +267,10 @@ def lawyer_assistant_view(request):
 			'evidencias': _build_evidence_list(legal_case),
 			'agente_classificacao_risco': recommendation.agente_classificacao_risco,
 			'agente_sugestao_acordo': recommendation.agente_sugestao_acordo,
+			'decisao_advogado': recommendation.decisao_advogado,
+			'decisao_advogado_at': recommendation.decisao_advogado_at,
 		}
+		context['action_feedback'] = action_feedback
 
 	return render(request, 'legalapp/lawyer_assistant.html', context)
 
@@ -252,6 +285,7 @@ def effectiveness_monitoring_view(request):
 	acordos_sugeridos = 0
 	acordos_aceitos = 0
 	acordos_rejeitados = 0
+	acordos_sem_decisao = 0
 	total_economia = 0
 	total_economia_efetiva = 0
 	casos_com_nova_condenacao = 0
@@ -260,7 +294,7 @@ def effectiveness_monitoring_view(request):
 	rows = []
 	for rec in recommendations:
 		acordo_sugerido = rec.sugestao_acao == 'PROPOR_ACORDO'
-		acordo_realizado = rec.case.resultado_micro == 'ACORDO'
+		acordo_realizado = _is_agreement_accepted(rec)
 		
 		if acordo_sugerido:
 			acordos_sugeridos += 1
@@ -268,13 +302,15 @@ def effectiveness_monitoring_view(request):
 			economia_potencial = rec.valor_esperado_condenacao - rec.valor_para_acordo
 			total_economia += economia_potencial
 			
-			if acordo_realizado:
+			if acordo_realizado is True:
 				acordos_aceitos += 1
 				# economia efetiva: valor esperado - valor real pago
 				economia_efetiva = rec.valor_esperado_condenacao - rec.case.valor_condenacao
 				total_economia_efetiva += economia_efetiva
-			else:
+			elif acordo_realizado is False:
 				acordos_rejeitados += 1
+			else:
+				acordos_sem_decisao += 1
 		
 		# para défesa sugerida e mantida (sem acordo)
 		if (
@@ -293,8 +329,15 @@ def effectiveness_monitoring_view(request):
 		economia_valor = 0
 		
 		if acordo_sugerido:
-			economia_valor = rec.valor_esperado_condenacao - rec.case.valor_condenacao
-			acordo_status = 'Aceito' if acordo_realizado else 'Rejeitado'
+			if acordo_realizado is True:
+				acordo_status = 'Aceito'
+				economia_valor = rec.valor_esperado_condenacao - rec.case.valor_condenacao
+			elif acordo_realizado is False:
+				acordo_status = 'Rejeitado'
+				economia_valor = 0
+			else:
+				acordo_status = 'N/A'
+				economia_valor = 0
 		else:
 			# defesa
 			acordo_status = 'N/A'
@@ -312,8 +355,9 @@ def effectiveness_monitoring_view(request):
 		
 	# calcula taxas
 	taxa_aceitacao_acordos = 0
-	if acordos_sugeridos:
-		taxa_aceitacao_acordos = (acordos_aceitos / acordos_sugeridos) * 100
+	acordos_decididos = acordos_aceitos + acordos_rejeitados
+	if acordos_decididos:
+		taxa_aceitacao_acordos = (acordos_aceitos / acordos_decididos) * 100
 		
 	# economia média por caso com acordo bem-sucedido
 	economia_media_acordo = 0
@@ -323,8 +367,10 @@ def effectiveness_monitoring_view(request):
 	context = {
 		'total_casos': total,
 		'acordos_sugeridos': acordos_sugeridos,
+		'acordos_decididos': acordos_decididos,
 		'acordos_aceitos': acordos_aceitos,
 		'acordos_rejeitados': acordos_rejeitados,
+		'acordos_sem_decisao': acordos_sem_decisao,
 		'taxa_aceitacao_pct': round(taxa_aceitacao_acordos, 1),
 		'economia_total_potencial': _format_currency(total_economia),
 		'economia_total_efetiva': _format_currency(total_economia_efetiva),

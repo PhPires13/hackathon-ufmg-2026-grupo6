@@ -6,13 +6,23 @@
     <title>Assistente do Advogado</title>
     <style>
         :root {
-            --paper: #f6f3ee;
+            --bg-1: #f3efe9;
+            --bg-2: #ece4d8;
             --ink: #1f2421;
-            --accent: #bd632f;
-            --accent-2: #2f6f79;
-            --danger: #b6463a;
-            --card: #fffdfa;
-            --line: #d9cfc3;
+            --muted: #5d6662;
+            --brand: #a14d1f;
+            --brand-dark: #7d350f;
+            --teal: #1f5f68;
+            --teal-soft: #deedf0;
+            --orange-soft: #f5e2d2;
+            --danger: #9f2f23;
+            --danger-soft: #fde8e4;
+            --surface: #fffcf8;
+            --surface-alt: #f8f3ec;
+            --line: #d8cbbd;
+            --shadow: 0 22px 45px rgba(43, 39, 33, 0.09);
+            --radius-lg: 18px;
+            --radius-md: 12px;
         }
 
         * {
@@ -22,84 +32,150 @@
         body {
             margin: 0;
             min-height: 100vh;
-            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            font-family: "Plus Jakarta Sans", "IBM Plex Sans", "Segoe UI", sans-serif;
             color: var(--ink);
-            background: radial-gradient(circle at 20% 10%, #fff8ec 0%, var(--paper) 45%, #ece7df 100%);
+            background:
+                radial-gradient(circle at 8% 14%, #fff4e5 0%, rgba(255, 244, 229, 0) 35%),
+                radial-gradient(circle at 92% 6%, #e7f2f3 0%, rgba(231, 242, 243, 0) 28%),
+                linear-gradient(160deg, var(--bg-1), var(--bg-2));
         }
 
         .page {
-            max-width: 980px;
+            max-width: 1080px;
             margin: 0 auto;
-            padding: 2rem 1rem 3rem;
+            padding: 1.7rem 1rem 3rem;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .brand {
+            font-size: 0.82rem;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .nav {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #33403c;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid #d7ccc0;
+            border-radius: 999px;
+            padding: 0.38rem 0.74rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: 160ms ease;
+        }
+
+        .nav a.active,
+        .nav a:hover {
+            color: #fff;
+            background: var(--brand);
+            border-color: var(--brand);
         }
 
         .hero {
             border: 1px solid var(--line);
-            background: linear-gradient(135deg, #f9efe0, #fffdfa);
-            border-radius: 18px;
-            padding: 1.5rem;
-            box-shadow: 0 18px 40px rgba(31, 36, 33, 0.08);
-            animation: reveal 420ms ease-out;
+            background: linear-gradient(145deg, #fff9f1, var(--surface));
+            border-radius: var(--radius-lg);
+            padding: 1.55rem;
+            box-shadow: var(--shadow);
+            animation: reveal 380ms ease-out;
         }
 
         h1 {
-            margin: 0 0 0.4rem;
-            font-size: clamp(1.45rem, 3.2vw, 2rem);
+            margin: 0 0 0.3rem;
+            font-size: clamp(1.35rem, 3.4vw, 2.05rem);
             letter-spacing: -0.02em;
         }
 
         .subtitle {
             margin: 0;
-            color: #4d5752;
+            color: var(--muted);
+            max-width: 70ch;
+            line-height: 1.45;
         }
 
         .search {
-            margin-top: 1.25rem;
+            margin-top: 1.3rem;
             display: flex;
-            gap: 0.65rem;
+            gap: 0.6rem;
             flex-wrap: wrap;
         }
 
         .search input {
             flex: 1 1 320px;
             border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 0.7rem 0.85rem;
+            border-radius: var(--radius-md);
+            padding: 0.78rem 0.9rem;
             font-size: 0.96rem;
             background: #fff;
+            transition: border-color 160ms ease;
+        }
+
+        .search input:focus {
+            outline: none;
+            border-color: #b98563;
         }
 
         .search button {
             border: 0;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--accent), #cf8357);
+            border-radius: var(--radius-md);
+            background: linear-gradient(140deg, var(--brand), #c47445);
             color: #fff;
-            padding: 0.7rem 1rem;
-            font-weight: 600;
+            padding: 0.78rem 1.05rem;
+            font-weight: 700;
             cursor: pointer;
+            letter-spacing: 0.01em;
+            transition: transform 140ms ease, box-shadow 160ms ease;
+        }
+
+        .search button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(161, 77, 31, 0.24);
         }
 
         .alert {
             margin-top: 1rem;
-            border-radius: 10px;
-            border: 1px solid #e6c2bd;
-            color: #7f2f28;
-            background: #fdeeee;
-            padding: 0.75rem 0.9rem;
+            border-radius: var(--radius-md);
+            border: 1px solid #e5bdb6;
+            color: var(--danger);
+            background: var(--danger-soft);
+            padding: 0.8rem 0.95rem;
+            font-size: 0.92rem;
+        }
+
+        .alert.success {
+            border-color: #b8dec7;
+            color: #20623f;
+            background: #e8f7ef;
         }
 
         .panel {
-            margin-top: 1.2rem;
+            margin-top: 1.25rem;
             display: grid;
             gap: 1rem;
-            animation: reveal 420ms ease-out;
+            animation: reveal 420ms ease-out 30ms both;
         }
 
         .card {
-            background: var(--card);
+            background: var(--surface);
             border: 1px solid var(--line);
             border-radius: 14px;
-            padding: 1rem 1.1rem;
+            padding: 1rem 1.1rem 1.05rem;
         }
 
         .decision {
@@ -107,23 +183,34 @@
             align-items: center;
             border-radius: 999px;
             font-weight: 700;
-            font-size: 0.83rem;
-            padding: 0.33rem 0.7rem;
+            font-size: 0.79rem;
+            padding: 0.35rem 0.74rem;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            margin-bottom: 0.6rem;
-            background: #f2ece3;
+            margin-bottom: 0.58rem;
+            background: #f0e7db;
             color: var(--ink);
         }
 
         .decision.agreement {
-            background: #f6dfcf;
-            color: #6a2f07;
+            background: var(--orange-soft);
+            color: var(--brand-dark);
         }
 
         .decision.defense {
-            background: #dbeff2;
-            color: #1d4f58;
+            background: var(--teal-soft);
+            color: var(--teal);
+        }
+
+        .case-title {
+            margin: 0 0 0.52rem;
+            font-size: 1.12rem;
+        }
+
+        .justification {
+            margin: 0;
+            color: #3d4643;
+            line-height: 1.5;
         }
 
         .stats {
@@ -133,31 +220,104 @@
         }
 
         .stat {
-            background: #faf6f0;
-            border: 1px dashed #d2c6b8;
+            background: var(--surface-alt);
+            border: 1px dashed #cebfae;
             border-radius: 10px;
-            padding: 0.7rem 0.8rem;
+            padding: 0.74rem 0.8rem;
         }
 
         .label {
             display: block;
             font-size: 0.77rem;
             text-transform: uppercase;
-            color: #6a6f6d;
+            color: #636966;
             margin-bottom: 0.2rem;
             letter-spacing: 0.05em;
         }
 
         .value {
-            font-size: 1.15rem;
+            font-size: 1.07rem;
             font-weight: 700;
+            word-break: break-word;
         }
 
         .evidence-list {
             margin: 0;
             padding-left: 1.15rem;
             display: grid;
-            gap: 0.45rem;
+            gap: 0.44rem;
+            color: #37403d;
+            line-height: 1.35;
+        }
+
+        .decision-actions {
+            margin-top: 0.9rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .decision-actions button {
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 0.52rem 0.85rem;
+            font-size: 0.86rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-accept {
+            background: #e7f5ec;
+            color: #1e5f3d;
+            border-color: #bcdec9;
+        }
+
+        .btn-reject {
+            background: #fce8e6;
+            color: #8c2c22;
+            border-color: #ebc0bb;
+        }
+
+        .btn-clear {
+            background: #f3ece2;
+            color: #665f55;
+            border-color: #ddd0c0;
+        }
+
+        .decision-state {
+            margin-top: 0.68rem;
+            color: #4f5b57;
+            font-size: 0.88rem;
+            line-height: 1.4;
+        }
+
+        .hint {
+            margin-top: 0.95rem;
+            font-size: 0.82rem;
+            color: #676f6c;
+        }
+
+        @media (max-width: 740px) {
+            .page {
+                padding-top: 1rem;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .hero {
+                padding: 1rem;
+            }
+
+            .search button {
+                width: 100%;
+            }
+
+            .decision-actions button {
+                width: 100%;
+            }
         }
 
         @keyframes reveal {
@@ -174,6 +334,15 @@
 </head>
 <body>
     <main class="page">
+        <div class="topbar">
+            <div class="brand">Painel Juridico Inteligente</div>
+            <nav class="nav" aria-label="Navegacao de dashboards">
+                <a href="/assistente-advogado/" class="active">Assistente</a>
+                <a href="/monitoramento-aderencia/">Aderencia</a>
+                <a href="/monitoramento-efetividade/">Efetividade</a>
+            </nav>
+        </div>
+
         <section class="hero">
             <h1>Assistente do Advogado</h1>
             <p class="subtitle">Recomendacao orientada por dados historicos e evidencias do processo.</p>
@@ -188,8 +357,14 @@
                 <button type="submit">Analisar</button>
             </form>
 
+            <p class="hint">Sugestao: informe um numero CNJ para recuperar uma recomendacao especifica.</p>
+
             {% if lookup_error %}
                 <div class="alert">{{ lookup_error }}</div>
+            {% endif %}
+
+            {% if action_feedback %}
+                <div class="alert success">{{ action_feedback }}</div>
             {% endif %}
 
             {% if assistant_data %}
@@ -198,8 +373,29 @@
                         <span class="decision {% if assistant_data.decisao_sugerida == 'ACORDO' %}agreement{% else %}defense{% endif %}">
                             Decisao sugerida: {{ assistant_data.decisao_sugerida }}
                         </span>
-                        <h2>Processo {{ assistant_data.numero_processo }}</h2>
-                        <p>{{ assistant_data.justificativa }}</p>
+                        <h2 class="case-title">Processo {{ assistant_data.numero_processo }}</h2>
+                        <p class="justification">{{ assistant_data.justificativa }}</p>
+
+                        <form method="post" class="decision-actions">
+                            {% csrf_token %}
+                            <input type="hidden" name="processo" value="{{ assistant_data.numero_processo }}">
+                            <button type="submit" name="decision" value="ACEITA" class="btn-accept">Aceitar recomendacao</button>
+                            <button type="submit" name="decision" value="REJEITADA" class="btn-reject">Nao aceitar recomendacao</button>
+                            <button type="submit" name="decision" value="LIMPAR" class="btn-clear">Limpar decisao</button>
+                        </form>
+
+                        <p class="decision-state">
+                            {% if assistant_data.decisao_advogado == 'ACEITA' %}
+                                Status do advogado: Recomendacao aceita.
+                            {% elif assistant_data.decisao_advogado == 'REJEITADA' %}
+                                Status do advogado: Recomendacao rejeitada.
+                            {% else %}
+                                Status do advogado: decisao ainda nao registrada.
+                            {% endif %}
+                            {% if assistant_data.decisao_advogado_at %}
+                                Ultima atualizacao: {{ assistant_data.decisao_advogado_at|date:'d/m/Y H:i' }}.
+                            {% endif %}
+                        </p>
                     </article>
 
                     <article class="card stats">

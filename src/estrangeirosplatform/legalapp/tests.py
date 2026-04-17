@@ -76,6 +76,30 @@ class LawyerAssistantViewTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Processo nao encontrado ou sem recomendacao cadastrada.')
 
+	def test_lawyer_can_accept_recommendation(self):
+		response = self.client.post(
+			'/assistente-advogado/',
+			{'processo': self.target_case.numero_processo, 'decision': 'ACEITA'},
+		)
+
+		recommendation = CaseRecommendation.objects.get(case=self.target_case)
+		self.assertEqual(recommendation.decisao_advogado, 'ACEITA')
+		self.assertIsNotNone(recommendation.decisao_advogado_at)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Decisao registrada: recomendacao aceita.')
+
+	def test_lawyer_can_reject_recommendation(self):
+		response = self.client.post(
+			'/assistente-advogado/',
+			{'processo': self.target_case.numero_processo, 'decision': 'REJEITADA'},
+		)
+
+		recommendation = CaseRecommendation.objects.get(case=self.target_case)
+		self.assertEqual(recommendation.decisao_advogado, 'REJEITADA')
+		self.assertIsNotNone(recommendation.decisao_advogado_at)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Decisao registrada: recomendacao rejeitada.')
+
 
 @override_settings(ROOT_URLCONF='legalapp.urls')
 class AdherenceMonitoringViewTests(TestCase):
@@ -105,15 +129,21 @@ class AdherenceMonitoringViewTests(TestCase):
 	def setUp(self):
 		# Caso 1: sugeriu ACORDO, fez ACORDO, valor proximo (5% desvio)
 		case1 = self._make_case('1000001-00.2025.8.06.0001', 'ACORDO', Decimal('2100.00'))
-		self._make_recommendation(case1, 'PROPOR_ACORDO', Decimal('2000.00'))
+		rec1 = self._make_recommendation(case1, 'PROPOR_ACORDO', Decimal('2000.00'))
+		rec1.decisao_advogado = 'ACEITA'
+		rec1.save(update_fields=['decisao_advogado'])
 
 		# Caso 2: sugeriu ACORDO, nao fez ACORDO (nao aderiu)
 		case2 = self._make_case('1000002-00.2025.8.06.0001', 'IMPROCEDENCIA', Decimal('0.00'))
-		self._make_recommendation(case2, 'PROPOR_ACORDO', Decimal('1500.00'))
+		rec2 = self._make_recommendation(case2, 'PROPOR_ACORDO', Decimal('1500.00'))
+		rec2.decisao_advogado = 'REJEITADA'
+		rec2.save(update_fields=['decisao_advogado'])
 
 		# Caso 3: sugeriu DEFESA, nao fez ACORDO (aderiu)
 		case3 = self._make_case('1000003-00.2025.8.06.0001', 'IMPROCEDENCIA', Decimal('0.00'))
-		self._make_recommendation(case3, 'DEFENDER', Decimal('0.00'))
+		rec3 = self._make_recommendation(case3, 'DEFENDER', Decimal('0.00'))
+		rec3.decisao_advogado = 'ACEITA'
+		rec3.save(update_fields=['decisao_advogado'])
 
 	def test_adherence_monitoring_renders(self):
 		response = self.client.get('/monitoramento-aderencia/')
@@ -150,6 +180,30 @@ class AdherenceMonitoringViewTests(TestCase):
 		self.assertEqual(ctx['acordos_com_valor_avaliavel'], 1)
 		self.assertAlmostEqual(ctx['valor_proximo_pct'], 100.0, places=0)
 
+	def test_adherence_uses_explicit_lawyer_decision(self):
+		rec = CaseRecommendation.objects.get(case__numero_processo='1000002-00.2025.8.06.0001')
+		rec.decisao_advogado = 'ACEITA'
+		rec.save(update_fields=['decisao_advogado'])
+
+		response = self.client.get('/monitoramento-aderencia/')
+		ctx = response.context
+
+		# Mesmo com resultado micro diferente de ACORDO, a decisão explícita do advogado prevalece.
+		self.assertEqual(ctx['aderiu_count'], 3)
+		self.assertEqual(ctx['nao_aderiu_count'], 0)
+
+	def test_cleared_lawyer_decision_is_na_in_adherence(self):
+		rec = CaseRecommendation.objects.get(case__numero_processo='1000001-00.2025.8.06.0001')
+		rec.decisao_advogado = None
+		rec.save(update_fields=['decisao_advogado'])
+
+		response = self.client.get('/monitoramento-aderencia/')
+		ctx = response.context
+
+		self.assertEqual(ctx['aderiu_count'], 1)
+		self.assertEqual(ctx['nao_aderiu_count'], 1)
+		self.assertEqual(ctx['sem_resultado_count'], 1)
+
 
 @override_settings(ROOT_URLCONF='legalapp.urls')
 class EffectivenessMonitoringViewTests(TestCase):
@@ -165,7 +219,7 @@ class EffectivenessMonitoringViewTests(TestCase):
 			valor_causa=Decimal('10000.00'),
 			valor_condenacao=Decimal('2200.00'),
 		)
-		CaseRecommendation.objects.create(
+		rec1 = CaseRecommendation.objects.create(
 			case=case1,
 			agente_classificacao_risco='modelo-risco-v1',
 			probabilidade_perder_caso=Decimal('0.6500'),
@@ -174,6 +228,8 @@ class EffectivenessMonitoringViewTests(TestCase):
 			sugestao_acao='PROPOR_ACORDO',
 			valor_para_acordo=Decimal('2500.00'),
 		)
+		rec1.decisao_advogado = 'ACEITA'
+		rec1.save(update_fields=['decisao_advogado'])
 
 		# Caso 2: Acordo sugerido mas rejeitado
 		case2 = LegalCase.objects.create(
@@ -186,7 +242,7 @@ class EffectivenessMonitoringViewTests(TestCase):
 			valor_causa=Decimal('8000.00'),
 			valor_condenacao=Decimal('0.00'),
 		)
-		CaseRecommendation.objects.create(
+		rec2 = CaseRecommendation.objects.create(
 			case=case2,
 			agente_classificacao_risco='modelo-risco-v1',
 			probabilidade_perder_caso=Decimal('0.7500'),
@@ -195,6 +251,8 @@ class EffectivenessMonitoringViewTests(TestCase):
 			sugestao_acao='PROPOR_ACORDO',
 			valor_para_acordo=Decimal('2000.00'),
 		)
+		rec2.decisao_advogado = 'REJEITADA'
+		rec2.save(update_fields=['decisao_advogado'])
 
 		# Caso 3: Defesa sugerida e mantida (condenacao evitada)
 		case3 = LegalCase.objects.create(
@@ -229,8 +287,10 @@ class EffectivenessMonitoringViewTests(TestCase):
 
 		# 2 acordos sugeridos, 1 aceito = 50%
 		self.assertEqual(ctx['acordos_sugeridos'], 2)
+		self.assertEqual(ctx['acordos_decididos'], 2)
 		self.assertEqual(ctx['acordos_aceitos'], 1)
 		self.assertEqual(ctx['acordos_rejeitados'], 1)
+		self.assertEqual(ctx['acordos_sem_decisao'], 0)
 		self.assertAlmostEqual(ctx['taxa_aceitacao_pct'], 50.0, places=0)
 
 	def test_estimated_savings_calculation(self):
@@ -249,3 +309,44 @@ class EffectivenessMonitoringViewTests(TestCase):
 
 		# Condenacoes evitadas: Caso 3 (defesa bem-sucedida) = 3000
 		self.assertIn('3', ctx['condenacoes_evitadas'])
+
+	def test_effectiveness_uses_explicit_lawyer_acceptance(self):
+		rec = CaseRecommendation.objects.get(case__numero_processo='2000002-00.2025.8.06.0001')
+		rec.decisao_advogado = 'ACEITA'
+		rec.save(update_fields=['decisao_advogado'])
+
+		response = self.client.get('/monitoramento-efetividade/')
+		ctx = response.context
+
+		# Agora os dois acordos sugeridos devem ser contabilizados como aceitos.
+		self.assertEqual(ctx['acordos_sugeridos'], 2)
+		self.assertEqual(ctx['acordos_aceitos'], 2)
+		self.assertEqual(ctx['acordos_rejeitados'], 0)
+		self.assertAlmostEqual(ctx['taxa_aceitacao_pct'], 100.0, places=0)
+
+	def test_cleared_lawyer_decision_is_na_in_effectiveness(self):
+		rec = CaseRecommendation.objects.get(case__numero_processo='2000002-00.2025.8.06.0001')
+		rec.decisao_advogado = None
+		rec.save(update_fields=['decisao_advogado'])
+
+		response = self.client.get('/monitoramento-efetividade/')
+		ctx = response.context
+
+		self.assertEqual(ctx['acordos_sugeridos'], 2)
+		self.assertEqual(ctx['acordos_decididos'], 1)
+		self.assertEqual(ctx['acordos_aceitos'], 1)
+		self.assertEqual(ctx['acordos_rejeitados'], 0)
+		self.assertEqual(ctx['acordos_sem_decisao'], 1)
+		self.assertAlmostEqual(ctx['taxa_aceitacao_pct'], 100.0, places=0)
+
+		row = next(r for r in ctx['rows'] if r['numero_processo'] == '2000002-00.2025.8.06.0001')
+		self.assertEqual(row['status_acordo'], 'N/A')
+		self.assertEqual(row['economia'], 'R$ 0,00')
+
+	def test_rejected_agreement_has_zero_effective_savings_in_row(self):
+		response = self.client.get('/monitoramento-efetividade/')
+		ctx = response.context
+
+		row = next(r for r in ctx['rows'] if r['numero_processo'] == '2000002-00.2025.8.06.0001')
+		self.assertEqual(row['status_acordo'], 'Rejeitado')
+		self.assertEqual(row['economia'], 'R$ 0,00')

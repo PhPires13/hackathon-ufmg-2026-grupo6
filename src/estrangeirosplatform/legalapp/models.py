@@ -18,6 +18,11 @@ RECOMMENDATION_ACTION_CHOICES = (
 	('PROPOR_ACORDO', 'PROPOR_ACORDO')
 )
 
+LAWYER_DECISION_CHOICES = (
+	('ACEITA', 'ACEITA'),
+	('REJEITADA', 'REJEITADA'),
+)
+
 UF_CHOICES = (
 	('AC', 'AC'),
 	('AL', 'AL'),
@@ -167,6 +172,13 @@ class CaseRecommendation(TimeStampedModel):
 		decimal_places=2,
 		validators=[MinValueValidator(0)],
 	)
+	decisao_advogado = models.CharField(
+		max_length=9,
+		choices=LAWYER_DECISION_CHOICES,
+		null=True,
+		blank=True,
+	)
+	decisao_advogado_at = models.DateTimeField(null=True, blank=True)
 
 	class Meta:
 		ordering = ['-created_at']

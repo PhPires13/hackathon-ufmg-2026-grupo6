@@ -6,51 +6,105 @@
     <title>Monitoramento de Efetividade</title>
     <style>
         :root {
-            --paper: #f6f3ee;
+            --bg-1: #f3efe9;
+            --bg-2: #ece4d8;
             --ink: #1f2421;
-            --accent: #bd632f;
-            --accent-2: #2f6f79;
+            --muted: #5d6662;
+            --brand: #a14d1f;
             --green: #2d6a4f;
             --green-bg: #d8f3dc;
             --red: #b6463a;
             --red-bg: #fdeeee;
             --cyan: #0891b2;
             --cyan-bg: #cffafe;
-            --card: #fffdfa;
+            --orange: #a14d1f;
+            --card: #fffcf8;
+            --card-soft: #f9f3eb;
             --line: #d9cfc3;
+            --shadow: 0 22px 45px rgba(43, 39, 33, 0.09);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            font-family: "Plus Jakarta Sans", "IBM Plex Sans", "Segoe UI", sans-serif;
             color: var(--ink);
-            background: radial-gradient(circle at 20% 10%, #fff8ec 0%, var(--paper) 45%, #ece7df 100%);
+            background:
+                radial-gradient(circle at 8% 14%, #fff4e5 0%, rgba(255, 244, 229, 0) 35%),
+                radial-gradient(circle at 92% 6%, #e7f2f3 0%, rgba(231, 242, 243, 0) 28%),
+                linear-gradient(160deg, var(--bg-1), var(--bg-2));
             min-height: 100vh;
         }
 
         .page {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem 1rem 3rem;
+            padding: 1.7rem 1rem 3rem;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .brand {
+            font-size: 0.82rem;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .nav {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #33403c;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid #d7ccc0;
+            border-radius: 999px;
+            padding: 0.38rem 0.74rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: 160ms ease;
+        }
+
+        .nav a.active,
+        .nav a:hover {
+            color: #fff;
+            background: var(--brand);
+            border-color: var(--brand);
         }
 
         header {
             margin-bottom: 1.5rem;
+            border: 1px solid var(--line);
+            background: linear-gradient(145deg, #fff9f1, var(--card));
+            border-radius: 18px;
+            padding: 1.2rem 1.1rem;
+            box-shadow: var(--shadow);
+            animation: reveal 380ms ease-out;
         }
 
         h1 {
             font-size: clamp(1.4rem, 3vw, 1.9rem);
             letter-spacing: -0.02em;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.35rem;
         }
 
         .subtitle {
-            color: #4d5752;
+            color: var(--muted);
             font-size: 0.93rem;
+            line-height: 1.4;
         }
 
-        /* KPI cards */
         .kpis {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -64,6 +118,7 @@
             border-radius: 14px;
             padding: 1rem 1.1rem;
             animation: reveal 380ms ease-out;
+            box-shadow: 0 10px 20px rgba(43, 39, 33, 0.05);
         }
 
         .kpi-label {
@@ -93,28 +148,33 @@
         .kpi.green .kpi-value { color: var(--green); }
         .kpi.red   .kpi-value { color: var(--red); }
         .kpi.cyan  .kpi-value { color: var(--cyan); }
-        .kpi.orange .kpi-value { color: var(--accent); }
+        .kpi.orange .kpi-value { color: var(--orange); }
 
-        /* Table */
         .table-card {
             background: var(--card);
             border: 1px solid var(--line);
             border-radius: 14px;
             overflow: hidden;
             animation: reveal 420ms ease-out;
+            box-shadow: 0 12px 20px rgba(43, 39, 33, 0.04);
         }
 
         .table-card h2 {
             padding: 0.9rem 1.1rem;
             font-size: 1rem;
             border-bottom: 1px solid var(--line);
-            background: #faf6f0;
+            background: var(--card-soft);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.88rem;
+            min-width: 760px;
         }
 
         thead th {
@@ -125,7 +185,10 @@
             letter-spacing: 0.05em;
             color: #6a6f6d;
             border-bottom: 1px solid var(--line);
-            background: #faf6f0;
+            background: var(--card-soft);
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         tbody td {
@@ -167,6 +230,21 @@
             color: #6a6f6d;
         }
 
+        @media (max-width: 740px) {
+            .page {
+                padding-top: 1rem;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            header {
+                padding: 1rem;
+            }
+        }
+
         @keyframes reveal {
             from { opacity: 0; transform: translateY(8px); }
             to   { opacity: 1; transform: translateY(0); }
@@ -175,6 +253,15 @@
 </head>
 <body>
 <main class="page">
+    <div class="topbar">
+        <div class="brand">Painel Juridico Inteligente</div>
+        <nav class="nav" aria-label="Navegacao de dashboards">
+            <a href="/assistente-advogado/">Assistente</a>
+            <a href="/monitoramento-aderencia/">Aderencia</a>
+            <a href="/monitoramento-efetividade/" class="active">Efetividade</a>
+        </nav>
+    </div>
+
     <header>
         <h1>Monitoramento de Efetividade</h1>
         <p class="subtitle">
@@ -182,12 +269,12 @@
         </p>
     </header>
 
-    <!-- KPIs -->
     <section class="kpis">
         <div class="kpi cyan">
             <span class="kpi-label">Taxa de aceitacao de acordos</span>
             <span class="kpi-value">{{ taxa_aceitacao_pct }}%</span>
-            <span class="kpi-sub">{{ acordos_aceitos }} de {{ acordos_sugeridos }} acordos</span>
+            <span class="kpi-sub">{{ acordos_aceitos }} de {{ acordos_decididos }} acordos decididos</span>
+            <span class="kpi-sub">{{ acordos_sem_decisao }} sem decisao registrada</span>
         </div>
 
         <div class="kpi green">
@@ -212,6 +299,7 @@
     <div class="table-card">
         <h2>Detalhe por processo</h2>
         {% if rows %}
+        <div class="table-wrap">
         <table>
             <thead>
                 <tr>
@@ -220,7 +308,7 @@
                     <th>Status do acordo</th>
                     <th>Valor esperado</th>
                     <th>Valor realizado</th>
-                    <th>Economia</th>
+                    <th>Economia efetiva</th>
                 </tr>
             </thead>
             <tbody>
@@ -244,6 +332,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
         {% else %}
             <p class="no-data">Nenhum caso com recomendacao cadastrada.</p>
         {% endif %}

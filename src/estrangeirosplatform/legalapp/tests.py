@@ -1,8 +1,20 @@
 from decimal import Decimal
+from io import StringIO
 
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 
 from .models import CaseDocument, CaseRecommendation, LegalCase
+
+
+@override_settings(ROOT_URLCONF='legalapp.urls')
+class HomeViewTests(TestCase):
+	def test_home_page_renders(self):
+		response = self.client.get('/')
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Hackathon de IA aplicada a estrategia juridica')
+		self.assertContains(response, 'Abrir assistente do advogado')
 
 
 @override_settings(ROOT_URLCONF='legalapp.urls')
@@ -76,6 +88,14 @@ class LawyerAssistantViewTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Processo nao encontrado ou sem recomendacao cadastrada.')
 
+	def test_lawyer_assistant_shows_available_case_numbers(self):
+		response = self.client.get('/assistente-advogado/')
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Numeros disponiveis para pesquisa')
+		self.assertContains(response, self.reference_case.numero_processo)
+		self.assertContains(response, self.target_case.numero_processo)
+
 	def test_lawyer_can_accept_recommendation(self):
 		response = self.client.post(
 			'/assistente-advogado/',
@@ -99,6 +119,63 @@ class LawyerAssistantViewTests(TestCase):
 		self.assertIsNotNone(recommendation.decisao_advogado_at)
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Decisao registrada: recomendacao rejeitada.')
+
+
+@override_settings(ROOT_URLCONF='legalapp.urls')
+class RecommendationInferenceIntegrationTests(TestCase):
+	def test_view_autogenerates_recommendation_for_existing_case(self):
+		legal_case = LegalCase.objects.create(
+			numero_processo='3000001-00.2025.8.06.0001',
+			uf='MG',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GOLPE',
+			resultado_macro='NAO_EXITO',
+			resultado_micro='IMPROCEDENCIA',
+			valor_causa=Decimal('15000.00'),
+			valor_condenacao=Decimal('0.00'),
+			has_contrato=False,
+			has_extrato=False,
+			has_comprovante_credito=False,
+			has_dossie=False,
+			has_demonstrativo_evolucao_divida=False,
+			has_laudo_referenciado=False,
+		)
+
+		response = self.client.get('/assistente-advogado/', {'processo': legal_case.numero_processo})
+
+		recommendation = CaseRecommendation.objects.get(case=legal_case)
+		self.assertEqual(response.status_code, 200)
+		self.assertIsNotNone(recommendation)
+		self.assertIn(recommendation.sugestao_acao, ['DEFENDER', 'PROPOR_ACORDO'])
+		self.assertContains(response, 'Recomendacao gerada automaticamente pelo modelo de decisao.')
+
+	def test_management_command_generates_recommendations(self):
+		LegalCase.objects.create(
+			numero_processo='3000002-00.2025.8.06.0001',
+			uf='SP',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GENERICO',
+			resultado_macro='EXITO',
+			resultado_micro='PROCEDENCIA',
+			valor_causa=Decimal('12000.00'),
+			valor_condenacao=Decimal('0.00'),
+		)
+		LegalCase.objects.create(
+			numero_processo='3000003-00.2025.8.06.0001',
+			uf='RJ',
+			assunto='NAO_RECONHECE_OPERACAO',
+			sub_assunto='GOLPE',
+			resultado_macro='NAO_EXITO',
+			resultado_micro='IMPROCEDENCIA',
+			valor_causa=Decimal('9000.00'),
+			valor_condenacao=Decimal('0.00'),
+		)
+
+		output = StringIO()
+		call_command('generate_recommendations', stdout=output)
+
+		self.assertEqual(CaseRecommendation.objects.count(), 2)
+		self.assertIn('Recomendacoes geradas/atualizadas: 2', output.getvalue())
 
 
 @override_settings(ROOT_URLCONF='legalapp.urls')

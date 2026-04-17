@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.utils import timezone
 
+from .agent.inference import upsert_case_recommendation
 from .models import CaseDocument, CaseRecommendation, LegalCase
 
 
@@ -12,6 +13,10 @@ DOCUMENT_EVIDENCE_LABELS = {
 	'DEMONSTRATIVO_DE_EVOLUCAO_DA_DIVIDA': 'Demonstrativo de evolucao da divida anexado',
 	'LAUDO_REFERENCIA': 'Laudo de referencia inserido',
 }
+
+
+def home_view(request):
+	return render(request, 'legalapp/home.html')
 
 
 def _format_currency(value):
@@ -218,6 +223,9 @@ def lawyer_assistant_view(request):
 	recommendation = None
 	lookup_error = None
 	action_feedback = None
+	available_case_numbers = list(
+		LegalCase.objects.order_by('numero_processo').values_list('numero_processo', flat=True)
+	)
 
 	if case_number:
 		recommendation = (
@@ -226,17 +234,28 @@ def lawyer_assistant_view(request):
 			.first()
 		)
 		if recommendation is None:
-			lookup_error = 'Processo nao encontrado ou sem recomendacao cadastrada.'
+			legal_case = LegalCase.objects.filter(numero_processo=case_number).first()
+			if legal_case is not None:
+				recommendation = upsert_case_recommendation(legal_case)
+				action_feedback = 'Recomendacao gerada automaticamente pelo modelo de decisao.'
+			else:
+				lookup_error = 'Processo nao encontrado ou sem recomendacao cadastrada.'
 	else:
 		recommendation = CaseRecommendation.objects.select_related('case').first()
 		if recommendation is None:
-			lookup_error = 'Nao ha recomendacoes cadastradas para exibir na interface.'
+			legal_case = LegalCase.objects.first()
+			if legal_case is not None:
+				recommendation = upsert_case_recommendation(legal_case)
+				action_feedback = 'Recomendacao gerada automaticamente pelo modelo de decisao.'
+			else:
+				lookup_error = 'Nao ha recomendacoes cadastradas para exibir na interface.'
 
 	context = {
 		'case_number': case_number,
 		'lookup_error': lookup_error,
 		'action_feedback': action_feedback,
 		'assistant_data': None,
+		'available_case_numbers': available_case_numbers,
 	}
 
 	if recommendation:

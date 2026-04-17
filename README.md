@@ -65,6 +65,32 @@ A solução deve conter, no mínimo:
 
 > Fique à vontade para usar quaisquer ferramentas e tecnologias.
 
+### Arquitetura do Agente de IA (Implementada)
+
+O projeto implementa um agente de decisão jurídica em camadas no backend Django:
+
+1. **Feature Engineering**: transforma dados do caso em variáveis de decisão
+2. **Risk Model**: estima probabilidade de perda e valor esperado de condenação
+3. **Decision Policy**: define sugestão (`ACORDO` ou `DEFESA`) e valor sugerido
+4. **Persistence Layer**: grava/atualiza a recomendação em banco para consumo na interface
+
+Principais arquivos:
+
+- `src/estrangeirosplatform/legalapp/agent/pipeline.py` (orquestração em camadas)
+- `src/estrangeirosplatform/legalapp/agent/inference.py` (integração com persistência)
+- `src/estrangeirosplatform/legalapp/views.py` (uso na interface do advogado)
+- `src/estrangeirosplatform/legalapp/management/commands/generate_recommendations.py` (execução em lote)
+
+Exemplos de execução:
+
+```bash
+# Gera recomendações para todos os casos cadastrados
+python manage.py generate_recommendations
+
+# Gera recomendação para um processo específico
+python manage.py generate_recommendations --processo 1764353-89.2025.8.06.1818
+```
+
 ---
 
 ## 5. O Que Você Está Recebendo

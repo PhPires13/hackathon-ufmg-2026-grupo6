@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casos Jurídicos</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --accent: #2563eb;
+            --accent-weak: #dbeafe;
+            --success: #16a34a;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 30%, #eef2f7 100%);
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 40px 20px 56px;
+        }
+
+        .hero {
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: clamp(1.8rem, 2.5vw, 2.5rem);
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .searchbar {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .searchbar input {
+            flex: 1 1 320px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 1rem;
+            background: #fff;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .searchbar input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+
+        .searchbar button {
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+        }
+
+        .table-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        thead {
+            background: #f8fafc;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        tbody tr:hover {
+            background: #f8fbff;
+        }
+
+        .process {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .subtext {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--accent-weak);
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .chip.success {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .empty {
+            padding: 36px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+
+        @media (max-width: 720px) {
+            .page { padding: 20px 12px 40px; }
+            .hero, .table-card { border-radius: 18px; }
+            .hero { padding: 22px; }
+            th, td { padding: 14px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>Casos jurídicos</h1>
+            <p>Pesquise por número do processo, recomendação ou ação tomada.</p>
+
+            <form method="get" class="searchbar">
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ query|default:'' }}"
+                    placeholder="Buscar por processo, ação recomendada ou ação tomada..."
+                    aria-label="Pesquisar casos jurídicos"
+                >
+                <button type="submit">Buscar</button>
+            </form>
+        </section>
+
+        <section class="table-card">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>numero_processo</th>
+                            <th>recommended action</th>
+                            <th>action_taken</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for case in cases %}
+                            <tr>
+                                <td>
+                                    <div class="process">{{ case.numero_processo }}</div>
+                                    <div class="subtext">
+                                        UF: {{ case.uf|default:"-" }} · Assunto: {{ case.assunto|default:"-" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if case.recommendation %}
+                                        <span class="chip">{{ case.recommendation.sugestao_acao }}</span>
+                                    {% else %}
+                                        <span class="chip success">Sem recomendação</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if case.action %}
+                                        <span class="chip success">{{ case.action.acao }}</span>
+                                        <div class="subtext">
+                                            {% if case.action.acao == 'PROPOR_ACORDO' %}
+                                                Valor do acordo: {{ case.action.valor_acordo|default:"-" }}
+                                            {% else %}
+                                                Resultado macro: {{ case.action.resultado_macro|default:"-" }} ·
+                                                Resultado micro: {{ case.action.resultado_micro|default:"-" }} ·
+                                                Valor condenação: {{ case.action.valor_condenacao|default:"-" }}
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="chip success">Sem ação registrada</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="empty">Nenhum caso encontrado.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Efetividade</title>
+    <link rel="stylesheet" href="{% static 'legalapp/css/sidebar-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'legalapp/css/monitoramento-efetividade.css' %}">
+</head>
+<body>
+    <div class="layout">
+        {% include 'legalapp/_sidebar.html' %}
+        <main class="content">
+    <div class="page">
+        <section class="hero">
+            <div>
+                <h1>Monitoramento de efetividade</h1>
+                <p>Indicadores para avaliar se a política está gerando resultado jurídico e financeiro.</p>
+            </div>
+        </section>
+
+        <section class="kpis">
+            <article class="kpi-card">
+                <h2>{{ total }}</h2>
+                <p>Casos avaliados</p>
+            </article>
+            <article class="kpi-card">
+                <h2>{{ taxa_efetividade_pct|floatformat:1 }}%</h2>
+                <p>Taxa geral de efetividade</p>
+            </article>
+            <article class="kpi-card">
+                <h2>{{ taxa_exito_defesa_pct|floatformat:1 }}%</h2>
+                <p>Taxa de êxito nas defesas</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ custo_total_politica|floatformat:2 }}</h2>
+                <p>Custo total observado</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ custo_medio_caso|floatformat:2 }}</h2>
+                <p>Custo médio por caso</p>
+            </article>
+        </section>
+
+        <section class="table-card">
+            <h3>Detalhamento por processo</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Processo</th>
+                            <th>Recomendação</th>
+                            <th>Ação tomada</th>
+                            <th>Resultado macro</th>
+                            <th>Valor acordo</th>
+                            <th>Valor condenação</th>
+                            <th>Custo no caso</th>
+                            <th>Status efetividade</th>
+                            <th>Critério</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td><a href="{% url 'legalapp:case-detail' row.case_id %}">{{ row.numero_processo }}</a></td>
+                                <td>{{ row.acao_recomendada }}</td>
+                                <td>{{ row.acao_tomada }}</td>
+                                <td>{{ row.resultado_macro|default:'-' }}</td>
+                                <td>{{ row.valor_acordo|default:'-' }}</td>
+                                <td>{{ row.valor_condenacao|default:'-' }}</td>
+                                <td>R$ {{ row.custo|floatformat:2 }}</td>
+                                <td>
+                                    {% if row.efetivo is None %}
+                                        <span class="badge na">N/A</span>
+                                    {% elif row.efetivo %}
+                                        <span class="badge ok">Efetivo</span>
+                                    {% else %}
+                                        <span class="badge no">Não efetivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.criterio }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="9" class="empty">Nenhum caso disponível para monitoramento.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+        </main>
+    </div>
+</body>
+</html>

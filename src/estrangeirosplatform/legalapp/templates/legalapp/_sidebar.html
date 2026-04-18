@@ -1,0 +1,17 @@
+<aside class="sidebar">
+    <div class="sidebar-brand">Painel Juridico</div>
+    <nav class="sidebar-nav" aria-label="Navegacao principal">
+        <a class="sidebar-link {% if active_nav == 'cases-list' %}active{% endif %}" href="{% url 'legalapp:cases-list' %}">
+            Casos
+        </a>
+        <a class="sidebar-link {% if active_nav == 'create-case' %}active{% endif %}" href="{% url 'legalapp:create-case' %}">
+            Cadastro de processo
+        </a>
+        <a class="sidebar-link {% if active_nav == 'monitoramento-aderencia' %}active{% endif %}" href="{% url 'legalapp:monitoramento-aderencia' %}">
+            Monitoramento de aderencia
+        </a>
+        <a class="sidebar-link {% if active_nav == 'monitoramento-efetividade' %}active{% endif %}" href="{% url 'legalapp:monitoramento-efetividade' %}">
+            Monitoramento de efetividade
+        </a>
+    </nav>
+</aside>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Aderência</title>
+    <link rel="stylesheet" href="{% static 'legalapp/css/sidebar-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'legalapp/css/monitoramento-aderencia.css' %}">
+</head>
+<body>
+    <div class="layout">
+        {% include 'legalapp/_sidebar.html' %}
+        <main class="content">
+    <div class="page">
+        <section class="hero">
+            <div>
+                <h1>Monitoramento de aderência</h1>
+                <p>Visão consolidada para acompanhar se os advogados seguem a política recomendada.</p>
+            </div>
+        </section>
+
+        <section class="kpis">
+            <article class="kpi-card">
+                <h2>{{ total }}</h2>
+                <p>Casos com ação e recomendação</p>
+            </article>
+            <article class="kpi-card">
+                <h2>{{ aderencia_acao_pct|floatformat:1 }}%</h2>
+                <p>Aderência à ação sugerida</p>
+            </article>
+            <article class="kpi-card">
+                <h2>{{ aderencia_valor_pct|floatformat:1 }}%</h2>
+                <p>Aderência ao valor de acordo</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ desvio_medio|floatformat:2 }}</h2>
+                <p>Desvio médio absoluto no acordo</p>
+            </article>
+        </section>
+
+        <section class="table-card">
+            <h3>Detalhamento por processo</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Processo</th>
+                            <th>Recomendação</th>
+                            <th>Ação tomada</th>
+                            <th>Aderente ação</th>
+                            <th>Valor recomendado</th>
+                            <th>Valor tomado</th>
+                            <th>Aderente valor</th>
+                            <th>Desvio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td><a href="{% url 'legalapp:case-detail' row.case_id %}">{{ row.numero_processo }}</a></td>
+                                <td>{{ row.acao_recomendada }}</td>
+                                <td>{{ row.acao_tomada }}</td>
+                                <td>
+                                    {% if row.aderente_acao %}
+                                        <span class="badge ok">Sim</span>
+                                    {% else %}
+                                        <span class="badge no">Não</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.valor_recomendado|default:'-' }}</td>
+                                <td>{{ row.valor_tomado|default:'-' }}</td>
+                                <td>
+                                    {% if row.aderente_valor is None %}
+                                        <span class="badge na">N/A</span>
+                                    {% elif row.aderente_valor %}
+                                        <span class="badge ok">Sim</span>
+                                    {% else %}
+                                        <span class="badge no">Não</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.shift_valor|default:'-' }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="empty">Nenhum caso com recomendação + ação registrada.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -50,7 +50,7 @@ const authorVisible = computed(() => {
       class="author"
       :class="{ on: authorVisible }"
       :style="{ transitionDelay: autoPlay ? `${words.length * stagger + 200}ms` : undefined }"
-    >— {{ author }}</figcaption>
+    >{{ author }}</figcaption>
   </figure>
 </template>
 

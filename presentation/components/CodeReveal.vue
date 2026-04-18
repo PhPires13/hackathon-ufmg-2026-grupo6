@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useSlideContext } from '@slidev/client'
+import { useSlideContext, useNav } from '@slidev/client'
 
 interface Step {
   lines: number[]
@@ -14,10 +14,12 @@ const props = defineProps<{
 }>()
 
 const { $clicks } = useSlideContext()
+const { isPrintMode } = useNav()
 
-const stepIdx = computed(() =>
-  Math.min(Math.max($clicks.value - 1, 0), props.steps.length - 1)
-)
+const stepIdx = computed(() => {
+  if (isPrintMode.value) return props.steps.length - 1
+  return Math.min(Math.max($clicks.value - 1, 0), props.steps.length - 1)
+})
 const currentStep = computed(() => props.steps[stepIdx.value])
 
 const lines = computed(() => props.code.split('\n'))

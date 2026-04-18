@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useSlideContext } from '@slidev/client'
+import { useSlideContext, useNav } from '@slidev/client'
 
 interface Node {
   id: string
@@ -27,7 +27,10 @@ const props = withDefaults(defineProps<{
 })
 
 const { $clicks } = useSlideContext()
-const revealed = computed(() => $clicks.value)
+const { isPrintMode } = useNav()
+const revealed = computed(() =>
+  isPrintMode.value ? props.nodes.length + props.edges.length + 1 : $clicks.value
+)
 
 const nodeMap = computed(() =>
   Object.fromEntries(props.nodes.map(n => [n.id, n]))
@@ -58,6 +61,7 @@ const isEdgeVisible = (idx: number) => revealed.value > props.nodes.length + idx
   <svg
     :viewBox="`0 0 ${width} ${height}`"
     class="arch-flow"
+    :class="{ 'print-static': isPrintMode }"
     xmlns="http://www.w3.org/2000/svg"
   >
     <defs>
@@ -157,4 +161,15 @@ const isEdgeVisible = (idx: number) => revealed.value > props.nodes.length + idx
 }
 .edge.visible line { animation: dash 800ms ease forwards; }
 @keyframes dash { to { stroke-dashoffset: 0; } }
+
+.arch-flow.print-static .node,
+.arch-flow.print-static .edge {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+.arch-flow.print-static .edge line {
+  stroke-dashoffset: 0 !important;
+  animation: none !important;
+}
 </style>

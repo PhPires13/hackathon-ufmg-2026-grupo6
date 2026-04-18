@@ -1,31 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --sidebar-collapsed: 92px;
+    --sidebar-expanded: 290px;
+    --sidebar-bg: linear-gradient(180deg, #efeff1 0%, #e4e6ea 100%);
+    --sidebar-line: rgba(107, 114, 128, 0.22);
+    --sidebar-text: #394150;
+    --sidebar-strong: #111827;
+    --sidebar-hover: rgba(250, 204, 21, 0.2);
+    --sidebar-active: #facc15;
+    --content-shift: var(--sidebar-collapsed);
+}
+
 html,
 body {
     margin: 0;
     width: 100%;
+    font-family: "Manrope", "Sora", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .layout {
     min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
 }
 
 .sidebar {
-    width: 300px;
-    padding: 20px 14px;
-    border-right: 1px solid rgba(31, 41, 55, 0.08);
-    background: linear-gradient(180deg, #f8fbff 0%, #edf3fb 100%);
+    width: var(--sidebar-collapsed);
+    padding: 20px 10px;
+    border-right: 1px solid var(--sidebar-line);
+    background: var(--sidebar-bg);
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
     overflow-y: auto;
+    overflow-x: hidden;
+    transition: width .28s ease, box-shadow .28s ease;
+    z-index: 10;
+}
+
+.sidebar:hover,
+.sidebar:focus-within {
+    width: var(--sidebar-expanded);
+    box-shadow: 12px 0 28px rgba(17, 24, 39, 0.08);
 }
 
 .sidebar-brand {
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+    padding: 0 6px;
     margin: 6px 8px 18px;
-    color: #1f2937;
+    color: var(--sidebar-strong);
+}
+
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #facc15;
+    color: #111827;
+    font-weight: 800;
+    flex: 0 0 auto;
+}
+
+.brand-full {
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    font-size: 1.02rem;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .2s ease, transform .2s ease;
+    white-space: nowrap;
+}
+
+.sidebar:hover .brand-full,
+.sidebar:focus-within .brand-full {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .sidebar-nav {
@@ -36,25 +93,91 @@ body {
 
 .sidebar-link {
     text-decoration: none;
-    color: #334155;
+    color: var(--sidebar-text);
     font-weight: 600;
-    padding: 10px 12px;
-    border-radius: 10px;
-    transition: background-color .15s ease, color .15s ease;
+    padding: 11px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.sidebar-link-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.52);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    font-size: .76rem;
+    font-weight: 800;
+    color: #374151;
+    flex: 0 0 auto;
+}
+
+.sidebar-link-text {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .2s ease, transform .2s ease;
+    white-space: nowrap;
+}
+
+.sidebar:hover .sidebar-link-text,
+.sidebar:focus-within .sidebar-link-text {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .sidebar-link:hover {
-    background: rgba(37, 99, 235, 0.12);
-    color: #1d4ed8;
+    background: var(--sidebar-hover);
+    border-color: rgba(250, 204, 21, 0.5);
+    color: var(--sidebar-strong);
 }
 
 .sidebar-link.active {
-    background: #2563eb;
-    color: #fff;
+    background: var(--sidebar-active);
+    border-color: rgba(161, 98, 7, 0.35);
+    color: #111827;
 }
 
 .content {
-    margin-left: 300px;
-    width: calc(100vw - 300px);
+    margin-left: var(--content-shift);
+    width: calc(100vw - var(--content-shift));
     min-width: 0;
+    transition: margin-left .28s ease, width .28s ease;
+}
+
+.sidebar:hover ~ .content,
+.sidebar:focus-within ~ .content {
+    margin-left: var(--sidebar-expanded);
+    width: calc(100vw - var(--sidebar-expanded));
+}
+
+@media (max-width: 900px) {
+    .sidebar,
+    .sidebar:hover,
+    .sidebar:focus-within {
+        width: 100%;
+        position: static;
+        box-shadow: none;
+        border-right: 0;
+        border-bottom: 1px solid var(--sidebar-line);
+    }
+
+    .brand-full,
+    .sidebar-link-text {
+        opacity: 1;
+        transform: none;
+    }
+
+    .content,
+    .sidebar:hover ~ .content,
+    .sidebar:focus-within ~ .content {
+        margin-left: 0;
+        width: 100%;
+    }
 }

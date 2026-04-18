@@ -1,17 +1,24 @@
 <aside class="sidebar">
-    <div class="sidebar-brand">Painel Juridico</div>
+    <div class="sidebar-brand">
+        <span class="brand-mark">PJ</span>
+        <span class="brand-full">Painel Juridico</span>
+    </div>
     <nav class="sidebar-nav" aria-label="Navegacao principal">
         <a class="sidebar-link {% if active_nav == 'cases-list' %}active{% endif %}" href="{% url 'legalapp:cases-list' %}">
-            Casos
+            <span class="sidebar-link-icon">CS</span>
+            <span class="sidebar-link-text">Casos</span>
         </a>
         <a class="sidebar-link {% if active_nav == 'create-case' %}active{% endif %}" href="{% url 'legalapp:create-case' %}">
-            Cadastro de processo
+            <span class="sidebar-link-icon">CP</span>
+            <span class="sidebar-link-text">Cadastro de processo</span>
         </a>
         <a class="sidebar-link {% if active_nav == 'monitoramento-aderencia' %}active{% endif %}" href="{% url 'legalapp:monitoramento-aderencia' %}">
-            Monitoramento de aderencia
+            <span class="sidebar-link-icon">MA</span>
+            <span class="sidebar-link-text">Monitoramento de aderencia</span>
         </a>
         <a class="sidebar-link {% if active_nav == 'monitoramento-efetividade' %}active{% endif %}" href="{% url 'legalapp:monitoramento-efetividade' %}">
-            Monitoramento de efetividade
+            <span class="sidebar-link-icon">ME</span>
+            <span class="sidebar-link-text">Monitoramento de efetividade</span>
         </a>
     </nav>
 </aside>

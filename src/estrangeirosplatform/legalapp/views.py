@@ -420,10 +420,9 @@ def monitoramento_efetividade_page(request):
 				criterio = 'Acordo sem faixa de aderencia comparavel'
 
 		if valor_esperado > 0 and tem_custo_observado:
-			limite_inferior = valor_esperado * 0.80
 			limite_superior = valor_esperado * 1.20
-			efetivo = limite_inferior <= custo <= limite_superior
-			criterio = 'Efetivo financeiro quando custo observado fica dentro de +/-20% da condenacao esperada'
+			efetivo = custo <= limite_superior
+			criterio = 'Efetivo financeiro quando custo observado fica ate +20% da condenacao esperada'
 			qtd_avaliados += 1
 			if efetivo:
 				qtd_efetivos += 1

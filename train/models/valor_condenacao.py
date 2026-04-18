@@ -222,14 +222,14 @@ def main() -> None:
         test_size=args.test_size,
         random_state=args.random_state,
     )
-    save_artifacts(model=model, metrics=metrics, artifact_dir=artifact_dir)
+    # save_artifacts(model=model, metrics=metrics, artifact_dir=artifact_dir)
 
     print('Training complete.')
     print(f'Data path: {data_path}')
     print(f'Model saved at: {artifact_dir / "valor_condenacao_model.pkl"}')
     print(f'Metrics saved at: {artifact_dir / "valor_condenacao_metrics.json"}')
     print('Metrics:')
-    print(json.dumps(metrics, indent=2))
+    # print(json.dumps(metrics, indent=2))
 
 
 if __name__ == '__main__':

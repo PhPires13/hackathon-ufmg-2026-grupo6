@@ -7,7 +7,7 @@ from legalapp.pdf_import import extract_documents_from_directory, upsert_case_fr
 
 class Command(BaseCommand):
     help = (
-        'Le a pasta de um processo com PDFs, extrai dados importantes, '
+        'Le a pasta de um processo com arquivos suportados (PDF/TXT), extrai dados importantes, '
         'salva no banco e gera um arquivo TXT com o resumo.'
     )
 
@@ -16,7 +16,7 @@ class Command(BaseCommand):
             '--case-dir',
             type=str,
             default='../../Caso_01_0801234-56-2024-8-10-0001',
-            help='Caminho para a pasta do caso com os arquivos PDF.',
+            help='Caminho para a pasta do caso com os arquivos de autos/subsidios.',
         )
         parser.add_argument(
             '--output-txt',
@@ -30,7 +30,7 @@ class Command(BaseCommand):
         output_txt_raw = (options.get('output_txt') or '').strip()
 
         if not case_dir_raw:
-            raise CommandError('Informe --case-dir com a pasta contendo os PDFs.')
+            raise CommandError('Informe --case-dir com a pasta contendo os documentos do caso.')
 
         case_dir = Path(case_dir_raw).expanduser().resolve()
         if not case_dir.exists() or not case_dir.is_dir():

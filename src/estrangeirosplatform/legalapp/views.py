@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+from django.conf import settings
 from django.db.models import Q
 from django.db.models.functions import Cast
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,7 +21,6 @@ from .ml_service import (
 )
 
 from .forms import LawyerActionCreateForm
-from .models import LegalCase
 
 
 def cases_list_page(request):
@@ -61,43 +63,97 @@ def cases_list_page(request):
 
 
 def create_case_page(request):
-	from .pdf_import import extract_documents_from_uploads, upsert_case_from_documents
+	from .pdf_import import (
+		extract_documents_from_directory,
+		extract_documents_from_uploads,
+		upsert_case_from_documents,
+	)
+
+	default_subsidios_base_dir = '../../data/subsidios'
 
 	context = {
 		'error_message': '',
 		'success_message': '',
 		'created_case': None,
+		'created_cases': [],
+		'subsidios_base_dir': default_subsidios_base_dir,
 		'active_nav': 'create-case',
 	}
 
 	if request.method == 'POST':
-		uploaded_files = request.FILES.getlist('pdf_files')
+		import_mode = (request.POST.get('import_mode') or 'upload_pdf').strip()
 
-		if not uploaded_files:
-			context['error_message'] = 'Envie pelo menos um arquivo PDF.'
-			return render(request, 'legalapp/create-case.html', context)
+		if import_mode == 'import_folder':
+			base_dir_raw = (request.POST.get('subsidios_base_dir') or default_subsidios_base_dir).strip()
+			context['subsidios_base_dir'] = base_dir_raw
 
-		invalid_files = [f.name for f in uploaded_files if not f.name.lower().endswith('.pdf')]
-		if invalid_files:
-			context['error_message'] = (
-				'Apenas PDFs sao permitidos. Arquivos invalidos: '
-				+ ', '.join(invalid_files)
-			)
-			return render(request, 'legalapp/create-case.html', context)
+			base_dir = Path(base_dir_raw).expanduser()
+			if not base_dir.is_absolute():
+				base_dir = (Path(settings.BASE_DIR) / base_dir).resolve()
+			else:
+				base_dir = base_dir.resolve()
+			if not base_dir.exists() or not base_dir.is_dir():
+				context['error_message'] = f'Pasta base de subsidios nao encontrada: {base_dir}'
+				return render(request, 'legalapp/create-case.html', context)
 
-		try:
-			documents_payload = extract_documents_from_uploads(uploaded_files)
-			legal_case, _summary_text = upsert_case_from_documents(documents_payload)
-		except ValueError as exc:
-			context['error_message'] = str(exc)
-			return render(request, 'legalapp/create-case.html', context)
-		except Exception:
-			context['error_message'] = 'Nao foi possivel processar os arquivos enviados.'
-			return render(request, 'legalapp/create-case.html', context)
+			process_dirs = sorted(p for p in base_dir.iterdir() if p.is_dir())
+			if not process_dirs:
+				context['error_message'] = f'Nenhuma pasta de processo encontrada em: {base_dir}'
+				return render(request, 'legalapp/create-case.html', context)
 
-		context['success_message'] = 'Processo cadastrado e extraido com sucesso.'
-		context['created_case'] = legal_case
-		context['cases_url'] = reverse('legalapp:cases-list')
+			created_cases = []
+			errors = []
+			for process_dir in process_dirs:
+				try:
+					documents_payload = extract_documents_from_directory(process_dir)
+					legal_case, _summary_text = upsert_case_from_documents(
+						documents_payload,
+						case_name_hint=process_dir.name,
+					)
+					created_cases.append(legal_case)
+				except ValueError as exc:
+					errors.append(f'{process_dir.name}: {exc}')
+				except Exception:
+					errors.append(f'{process_dir.name}: falha inesperada ao processar pasta')
+
+			if not created_cases:
+				context['error_message'] = 'Nao foi possivel processar nenhuma pasta. ' + ' | '.join(errors)
+				return render(request, 'legalapp/create-case.html', context)
+
+			context['success_message'] = f'{len(created_cases)} processo(s) cadastrado(s)/atualizado(s) com sucesso pela pasta de subsidios.'
+			if errors:
+				context['success_message'] += ' Pastas com erro: ' + ' | '.join(errors)
+			context['created_case'] = created_cases[0]
+			context['created_cases'] = created_cases
+			context['cases_url'] = reverse('legalapp:cases-list')
+		else:
+			uploaded_files = request.FILES.getlist('pdf_files')
+
+			if not uploaded_files:
+				context['error_message'] = 'Envie pelo menos um arquivo PDF.'
+				return render(request, 'legalapp/create-case.html', context)
+
+			invalid_files = [f.name for f in uploaded_files if not f.name.lower().endswith('.pdf')]
+			if invalid_files:
+				context['error_message'] = (
+					'Apenas PDFs sao permitidos. Arquivos invalidos: '
+					+ ', '.join(invalid_files)
+				)
+				return render(request, 'legalapp/create-case.html', context)
+
+			try:
+				documents_payload = extract_documents_from_uploads(uploaded_files)
+				legal_case, _summary_text = upsert_case_from_documents(documents_payload)
+			except ValueError as exc:
+				context['error_message'] = str(exc)
+				return render(request, 'legalapp/create-case.html', context)
+			except Exception:
+				context['error_message'] = 'Nao foi possivel processar os arquivos enviados.'
+				return render(request, 'legalapp/create-case.html', context)
+
+			context['success_message'] = 'Processo cadastrado e extraido com sucesso.'
+			context['created_case'] = legal_case
+			context['cases_url'] = reverse('legalapp:cases-list')
 
 	return render(request, 'legalapp/create-case.html', context)
 

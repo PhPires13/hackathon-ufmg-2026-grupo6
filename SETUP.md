@@ -39,6 +39,36 @@ OPENAI_API_KEY=sua_chave_aqui
 
 Coloque os arquivos de dados fornecidos na pasta `data/`. Consulte [`data/README.md`](./data/README.md) para instruções detalhadas.
 
+Para importar os casos no Django a partir da nova estrutura (`sentencas.csv` + `subsidios/<id_processo>`):
+
+```bash
+cd src/estrangeirosplatform
+
+# valida sem gravar
+python manage.py import_cases_from_data_dir --data-dir ../../data --dry-run
+
+# importa/atualiza no banco
+python manage.py import_cases_from_data_dir --data-dir ../../data
+```
+
+O mesmo comando tambem aceita importacao por PDFs:
+
+```bash
+cd src/estrangeirosplatform
+
+# Um processo (pasta com PDFs)
+python manage.py import_cases_from_data_dir --source pdf --case-dir /caminho/para/pasta_do_caso
+
+# Varios processos (cada subpasta pode ter PDFs em autos/)
+python manage.py import_cases_from_data_dir --source pdf --processos-exemplo-dir ../../data/processos_exemplo
+```
+
+Modo automatico (tenta PDF se informado e tambem importa estrutura data):
+
+```bash
+python manage.py import_cases_from_data_dir --source auto --data-dir ../../data --processos-exemplo-dir ../../data/processos_exemplo
+```
+
 ## Estrutura do Projeto
 
 ```

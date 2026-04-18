@@ -65,6 +65,17 @@ form {
     background: #f8f8f9;
 }
 
+.import-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.import-form {
+    margin-top: 0;
+}
+
 label {
     display: block;
     font-weight: 600;
@@ -85,6 +96,16 @@ input[type="file"] {
     border-radius: 10px;
     padding: 10px;
     background: #ffffff;
+}
+
+input[type="text"] {
+    display: block;
+    width: 100%;
+    border: 1px solid #c8ccd4;
+    border-radius: 10px;
+    padding: 10px;
+    background: #ffffff;
+    font-family: inherit;
 }
 
 .actions {
@@ -160,5 +181,9 @@ button:hover {
     .box {
         width: auto;
         padding: 18px;
+    }
+
+    .import-grid {
+        grid-template-columns: 1fr;
     }
 }

@@ -75,6 +75,14 @@ def pdf_bytes_to_text(content: bytes) -> tuple[str, int]:
     return '\n\n'.join(pages), len(reader.pages)
 
 
+def text_file_to_text(file_path: Path) -> tuple[str, int]:
+    try:
+        content = file_path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        content = file_path.read_text(encoding='latin-1', errors='ignore')
+    return content, 1
+
+
 def parse_decimal_brl(value: str) -> Decimal:
     normalized = value.replace('.', '').replace(',', '.').strip()
     try:
@@ -198,18 +206,27 @@ def upsert_case_from_documents(
 
 
 def extract_documents_from_directory(case_dir: Path) -> list[dict]:
-    pdf_files = sorted(case_dir.glob('*.pdf'))
-    if not pdf_files:
-        raise ValueError(f'Nenhum PDF encontrado em: {case_dir}')
+    allowed_suffixes = {'.pdf', '.txt', '.text', '.md'}
+    candidate_files = sorted(
+        f for f in case_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in allowed_suffixes
+    )
+    if not candidate_files:
+        raise ValueError(f'Nenhum arquivo suportado encontrado em: {case_dir}')
 
     documents_payload = []
-    for pdf_file in pdf_files:
-        extracted_text, pages = pdf_path_to_text(pdf_file)
+    for input_file in candidate_files:
+        suffix = input_file.suffix.lower()
+        if suffix == '.pdf':
+            extracted_text, pages = pdf_path_to_text(input_file)
+        else:
+            extracted_text, pages = text_file_to_text(input_file)
+
         documents_payload.append({
-            'file_name': pdf_file.name,
-            'file_path': str(pdf_file),
-            'source_path': str(pdf_file),
-            'document_type': infer_document_type(pdf_file.name),
+            'file_name': input_file.name,
+            'file_path': str(input_file),
+            'source_path': str(input_file),
+            'document_type': infer_document_type(input_file.name),
             'extracted_text': extracted_text,
             'pages': pages,
             'text_len': len(extracted_text),

@@ -3,31 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Em construção</title>
+    <title>Cadastrar Processo</title>
     <style>
+        :root {
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --accent: #2563eb;
+            --success-bg: #dcfce7;
+            --success-text: #166534;
+            --error-bg: #fee2e2;
+            --error-text: #991b1b;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
             margin: 0;
             min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 40%, #eef2f7 100%);
+            color: var(--text);
             display: grid;
             place-items: center;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #f4f7fb;
-            color: #1f2937;
+            padding: 24px 12px;
         }
 
         .box {
-            text-align: center;
-            padding: 32px;
-            border-radius: 20px;
-            background: #fff;
+            width: min(780px, 100%);
+            padding: 28px;
+            border-radius: 24px;
+            background: var(--card);
             box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            border: 1px solid #ffffff;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .top-link {
+            display: inline-block;
+            margin-top: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        form {
+            margin-top: 26px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px;
+            background: #fbfdff;
+        }
+
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .help {
+            font-size: 0.92rem;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            border: 1px dashed #93c5fd;
+            border-radius: 12px;
+            padding: 14px;
+            background: #eff6ff;
+        }
+
+        .actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.24);
+        }
+
+        .alert {
+            margin-top: 16px;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-weight: 600;
+        }
+
+        .alert.success {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .alert.error {
+            background: var(--error-bg);
+            color: var(--error-text);
+        }
+
+        .case-card {
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            background: #fff;
+        }
+
+        .case-card .title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .case-card .value {
+            font-size: 1.04rem;
+            font-weight: 700;
+        }
+
+        .case-meta {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 0.94rem;
         }
     </style>
 </head>
 <body>
     <div class="box">
-        <h1>Página em construção</h1>
-        <p>Conteúdo vazio por enquanto.</p>
+        <h1>Cadastrar Processo</h1>
+        <p>Envie os PDFs do processo para extrair dados e alimentar o banco automaticamente.</p>
+        <a class="top-link" href="{% url 'legalapp:legal-cases' %}">Voltar para lista de casos</a>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label for="pdf_files">Arquivos PDF do processo</label>
+            <p class="help">Pode enviar varios arquivos. Exemplo: autos, contrato, extrato, comprovante, dossie, laudo.</p>
+            <input id="pdf_files" type="file" name="pdf_files" accept="application/pdf" multiple required>
+
+            <div class="actions">
+                <button type="submit">Cadastrar Processo</button>
+            </div>
+        </form>
+
+        {% if error_message %}
+            <div class="alert error">{{ error_message }}</div>
+        {% endif %}
+
+        {% if success_message %}
+            <div class="alert success">{{ success_message }}</div>
+        {% endif %}
+
+        {% if created_case %}
+            <div class="case-card">
+                <div class="title">Processo criado/atualizado</div>
+                <div class="value">{{ created_case.numero_processo }}</div>
+                <div class="case-meta">
+                    UF: {{ created_case.uf|default:'-' }} ·
+                    Assunto: {{ created_case.assunto|default:'-' }} ·
+                    Subassunto: {{ created_case.sub_assunto|default:'-' }}
+                </div>
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>

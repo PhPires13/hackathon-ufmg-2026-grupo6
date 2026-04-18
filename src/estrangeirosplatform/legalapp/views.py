@@ -2,8 +2,10 @@ from django.db.models import Q
 from django.db.models.functions import Cast
 from django.shortcuts import render
 from django.db.models import CharField
+from django.urls import reverse
 
 from .models import LegalCase
+from .pdf_import import extract_documents_from_uploads, upsert_case_from_documents
 
 
 def legal_cases_page(request):
@@ -42,5 +44,40 @@ def legal_cases_page(request):
 
 
 def create_case_page(request):
-	return render(request, 'legalapp/create-case.html')
+	context = {
+		'error_message': '',
+		'success_message': '',
+		'created_case': None,
+	}
+
+	if request.method == 'POST':
+		uploaded_files = request.FILES.getlist('pdf_files')
+
+		if not uploaded_files:
+			context['error_message'] = 'Envie pelo menos um arquivo PDF.'
+			return render(request, 'legalapp/create-case.html', context)
+
+		invalid_files = [f.name for f in uploaded_files if not f.name.lower().endswith('.pdf')]
+		if invalid_files:
+			context['error_message'] = (
+				'Apenas PDFs sao permitidos. Arquivos invalidos: '
+				+ ', '.join(invalid_files)
+			)
+			return render(request, 'legalapp/create-case.html', context)
+
+		try:
+			documents_payload = extract_documents_from_uploads(uploaded_files)
+			legal_case, _summary_text = upsert_case_from_documents(documents_payload)
+		except ValueError as exc:
+			context['error_message'] = str(exc)
+			return render(request, 'legalapp/create-case.html', context)
+		except Exception:
+			context['error_message'] = 'Nao foi possivel processar os arquivos enviados.'
+			return render(request, 'legalapp/create-case.html', context)
+
+		context['success_message'] = 'Processo cadastrado e extraido com sucesso.'
+		context['created_case'] = legal_case
+		context['cases_url'] = reverse('legalapp:legal-cases')
+
+	return render(request, 'legalapp/create-case.html', context)
 

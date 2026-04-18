@@ -45,3 +45,6 @@ Thumbs.db
 .ipynb_checkpoints/
 
 *.csv
+
+.claude/
+CLAUDE.md

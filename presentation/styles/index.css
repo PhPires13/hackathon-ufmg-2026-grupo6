@@ -1,0 +1,167 @@
+/* Enter AI — Banco UFMG Política de Acordos
+   Dark mode: fundo preto, texto branco, âmbar como destaque. */
+
+:root {
+  --c-primary: #FFFFFF;
+  --c-accent: #F5A623;
+  --c-accent-strong: #FBBF24;
+  --c-accent-soft: rgba(245, 166, 35, 0.12);
+  --c-accent-border: rgba(245, 166, 35, 0.40);
+  --c-bg: #0A0A0A;
+  --c-surface: #141414;
+  --c-surface-2: #1C1C1C;
+  --c-muted: #9CA3AF;
+  --c-muted-strong: #D1D5DB;
+  --c-line: #27272A;
+  --c-line-soft: #1F1F22;
+  --c-ink: #F3F4F6;
+}
+
+html, body, #app { background: var(--c-bg); }
+
+.slidev-layout,
+.slidev-layout h1,
+.slidev-layout h2,
+.slidev-layout h3,
+.slidev-layout h4 {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-ink);
+}
+
+.slidev-layout {
+  background: var(--c-bg);
+  color: var(--c-ink);
+}
+
+.slidev-layout h1 {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  color: var(--c-primary);
+  line-height: 1.05;
+}
+
+.slidev-layout h2 {
+  letter-spacing: 0.14em;
+  color: var(--c-muted);
+  font-weight: 500;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+
+.slidev-layout h3 {
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  color: var(--c-primary);
+}
+
+.slidev-layout p,
+.slidev-layout li {
+  color: var(--c-muted-strong);
+  line-height: 1.55;
+}
+
+.slidev-layout strong { color: var(--c-primary); font-weight: 700; }
+
+.slidev-layout a { color: var(--c-accent); text-decoration: none; border-bottom: 1px solid var(--c-accent-border); }
+.slidev-layout a:hover { border-color: var(--c-accent); }
+
+.slidev-layout code:not(pre code) {
+  background: var(--c-accent-soft);
+  color: var(--c-accent);
+  padding: 0.1em 0.45em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  border: 1px solid var(--c-accent-border);
+}
+
+.slidev-layout blockquote {
+  border-left: 3px solid var(--c-accent);
+  padding-left: 1rem;
+  color: var(--c-muted);
+  font-style: normal;
+}
+
+/* Layout primitives */
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  font-weight: 600;
+}
+
+.accent { color: var(--c-accent); }
+.muted { color: var(--c-muted); }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--c-line);
+  margin: 1.5rem 0;
+}
+
+.brand-footer {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--c-muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  color: var(--c-ink);
+}
+.card-accent {
+  background: var(--c-accent-soft);
+  border-left: 3px solid var(--c-accent);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  color: var(--c-ink);
+}
+
+/* Dark mode: reescrever utilitários light-mode do Tailwind que aparecem no slides.md.
+   Mantém compatibilidade: escrever `text-gray-700` segue legível em fundo preto. */
+.slidev-layout .text-gray-900,
+.slidev-layout .text-gray-800,
+.slidev-layout .text-gray-700,
+.slidev-layout .text-black { color: var(--c-ink) !important; }
+
+.slidev-layout .text-gray-600 { color: var(--c-muted-strong) !important; }
+.slidev-layout .text-gray-500,
+.slidev-layout .text-gray-400 { color: var(--c-muted) !important; }
+.slidev-layout .text-gray-300,
+.slidev-layout .text-gray-200 { color: #4B5563 !important; }
+
+.slidev-layout .bg-gray-50,
+.slidev-layout .bg-gray-100,
+.slidev-layout .bg-white { background: var(--c-surface) !important; }
+.slidev-layout .border-gray-100,
+.slidev-layout .border-gray-200,
+.slidev-layout .border-gray-300 { border-color: var(--c-line) !important; }
+
+.slidev-layout kbd {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  color: var(--c-muted-strong);
+}
+
+.slidev-layout { font-variant-numeric: tabular-nums; }
+
+/* Apresentação limpa: esconder dialog de navegação (lista de slides)
+   e qualquer camera/overview que abra por atalho durante a apresentação. */
+#slidev-goto-dialog,
+#slidev-web-camera,
+.slidev-overview,
+.slidev-info-dialog { display: none !important; }
+
+/* NavControls já são invisíveis por default (opacity-0) — só aparecem no hover.
+   Mantemos esse comportamento: não escondemos permanentemente porque o
+   apresentador pode precisar dos botões. Pressione F para tela cheia. */

@@ -2,3 +2,5 @@ Django==6.0.4
 numpy==2.4.4
 pandas==3.0.2
 pypdf==6.10.2
+lightgbm
+scikit-learn

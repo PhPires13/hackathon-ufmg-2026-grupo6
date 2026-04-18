@@ -20,10 +20,17 @@ COST_MODEL_PATH = ARTIFACTS_DIR / "cost_model.pkl"
 @lru_cache(maxsize=1)
 def _load_checkpoints() -> tuple[dict, dict]:
     """Carrega os checkpoints dos modelos com cache."""
-    with open(RISK_MODEL_PATH, "rb") as f:
-        risk_ckpt = pickle.load(f)
-    with open(COST_MODEL_PATH, "rb") as f:
-        cost_ckpt = pickle.load(f)
+    try:
+        with open(RISK_MODEL_PATH, "rb") as f:
+            risk_ckpt = pickle.load(f)
+        with open(COST_MODEL_PATH, "rb") as f:
+            cost_ckpt = pickle.load(f)
+    except ModuleNotFoundError as exc:
+        missing_module = getattr(exc, "name", None) or str(exc)
+        raise RuntimeError(
+            f"Nao foi possivel carregar os checkpoints. Dependencia ausente: {missing_module}. "
+            "Instale as dependencias do projeto (ex.: pip install -r requirements.txt)."
+        ) from exc
     return risk_ckpt, cost_ckpt
 
 

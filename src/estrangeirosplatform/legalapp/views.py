@@ -138,21 +138,21 @@ def case_detail_page(request, case_id):
 
 
 def gerar_recomendacao_caso(
-		case: LegalCase,
-		limiar_fixo: float = 3000.0,
-		comparar_com_valor_causa: bool = True,
-		settlement_factor: float = 0.30,
+	case: LegalCase,
+	limiar_fixo: float = 3000.0,
+	comparar_com_valor_causa: bool = True,
+	settlement_factor: float = 0.30,
 ) -> CaseRecommendation:
 	"""
 	Recebe LegalCase, roda os 2 modelos, calcula expected_loss
 	e cria/atualiza CaseRecommendation.
-
+	
 	Args:
 		case: LegalCase instance
 		limiar_fixo: Limiar de decisão em reais (default 3000)
 		comparar_com_valor_causa: Se True, usa valor_causa como limiar se > 0
 		settlement_factor: Fator multiplicador para valor de acordo (0.30 = 30% do expected_loss)
-
+	
 	Returns:
 		CaseRecommendation criado ou atualizado
 	"""

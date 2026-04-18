@@ -9,7 +9,7 @@ from .forms import LawyerActionCreateForm
 from .models import LegalCase
 
 
-def legal_cases_page(request):
+def cases_list_page(request):
 	query = request.GET.get('q', '').strip()
 	cases = LegalCase.objects.select_related('recommendation', 'action')
 
@@ -41,7 +41,7 @@ def legal_cases_page(request):
 			)
 		)
 
-	return render(request, 'legalapp/legal-cases.html', {'cases': cases, 'query': query})
+	return render(request, 'legalapp/cases-list.html', {'cases': cases, 'query': query})
 
 
 def create_case_page(request):
@@ -80,7 +80,7 @@ def create_case_page(request):
 
 		context['success_message'] = 'Processo cadastrado e extraido com sucesso.'
 		context['created_case'] = legal_case
-		context['cases_url'] = reverse('legalapp:legal-cases')
+		context['cases_url'] = reverse('legalapp:cases-list')
 
 	return render(request, 'legalapp/create-case.html', context)
 

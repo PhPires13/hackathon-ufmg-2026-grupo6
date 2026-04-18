@@ -154,7 +154,7 @@
     <div class="box">
         <h1>Cadastrar Processo</h1>
         <p>Envie os PDFs.</p>
-        <a class="top-link" href="{% url 'legalapp:legal-cases' %}">Voltar para lista de casos</a>
+        <a class="top-link" href="{% url 'legalapp:cases-list' %}">Voltar para lista de casos</a>
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}

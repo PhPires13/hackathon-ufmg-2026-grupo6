@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 
 from .models import LawyerAction
@@ -60,9 +62,32 @@ class LawyerActionCreateForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        # Temporary rule requested: always persist comparison flags as False.
-        instance.same_action_taken = False
-        instance.valor_acordo_in_range = False
+        recommendation = None
+        if getattr(instance, 'case_id', None):
+            recommendation = getattr(instance.case, 'recommendation', None)
+
+        if recommendation is None:
+            instance.same_action_taken = False
+            instance.valor_acordo_in_range = None
+            instance.shift_valor_acordo = None
+        else:
+            instance.same_action_taken = (instance.acao == recommendation.sugestao_acao)
+
+            if (
+                instance.acao == 'PROPOR_ACORDO'
+                and recommendation.sugestao_acao == 'PROPOR_ACORDO'
+                and instance.valor_acordo is not None
+                and recommendation.valor_para_acordo is not None
+            ):
+                valor_recomendado = recommendation.valor_para_acordo
+                limite_inferior = valor_recomendado * Decimal('0.80')
+                limite_superior = valor_recomendado * Decimal('1.20')
+                instance.valor_acordo_in_range = limite_inferior <= instance.valor_acordo <= limite_superior
+                instance.shift_valor_acordo = instance.valor_acordo - valor_recomendado
+            else:
+                instance.valor_acordo_in_range = None
+                instance.shift_valor_acordo = None
+
         if commit:
             instance.save()
             self.save_m2m()

@@ -178,7 +178,7 @@ class LawyerAction(TimeStampedModel):
 	)
 	acao = models.CharField(max_length=13, choices=ACTION_CHOICES)
 
-	# IF ACAO = PROPOR_ACORDO
+	# IF acao = PROPOR_ACORDO
 	valor_acordo = models.DecimalField(
 		max_digits=10,
 		decimal_places=2,
@@ -186,10 +186,15 @@ class LawyerAction(TimeStampedModel):
 		validators=[MinValueValidator(0)],
 	)
 
-	# IF ACAO = DEFENDER
+	# IF acao = DEFENDER
 	resultado_macro = models.CharField(max_length=12, null=True, choices=RESULTADO_MACRO_CHOICES)
 	resultado_micro = models.CharField(max_length=24, null=True, choices=RESULTADO_MICRO_CHOICES)
 	valor_condenacao = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+
+	# Compare against recommendation
+	same_action_taken = models.BooleanField(default=False)
+	valor_acordo_in_range = models.BooleanField(default=False)
+	shift_valor_acordo = models.DecimalField(max_digits=10, decimal_places=2, null=True)
 
 	class Meta:
 		ordering = ['-created_at']

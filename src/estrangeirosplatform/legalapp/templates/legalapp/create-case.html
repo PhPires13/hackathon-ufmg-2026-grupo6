@@ -14,18 +14,36 @@
         <main class="content">
     <div class="box">
         <h1>Cadastrar Processo</h1>
-        <p>Envie os PDFs.</p>
+        <p>Use upload de PDF ou importe por pasta de subsidios (id_processo).</p>
 
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <label for="pdf_files">Arquivos PDF do processo</label>
-            <p class="help">Selecione um ou mais arquivos.</p>
-            <input id="pdf_files" type="file" name="pdf_files" accept="application/pdf" multiple required>
+        <div class="import-grid">
+            <form method="post" enctype="multipart/form-data" class="import-form">
+                {% csrf_token %}
+                <input type="hidden" name="import_mode" value="upload_pdf">
 
-            <div class="actions">
-                <button type="submit">Cadastrar Processo</button>
-            </div>
-        </form>
+                <label for="pdf_files">Arquivos PDF do processo</label>
+                <p class="help">Selecione um ou mais arquivos PDF.</p>
+                <input id="pdf_files" type="file" name="pdf_files" accept="application/pdf" multiple required>
+
+                <div class="actions">
+                    <button type="submit">Cadastrar por Upload PDF</button>
+                </div>
+            </form>
+
+            <form method="post" class="import-form">
+                {% csrf_token %}
+                <input type="hidden" name="import_mode" value="import_folder">
+                <input type="hidden" name="subsidios_base_dir" value="{{ subsidios_base_dir }}">
+
+                <label>Importacao por pasta padrao</label>
+                <p class="help">Pasta base usada automaticamente: {{ subsidios_base_dir }}</p>
+                <p class="help">Clique no botao para processar todas as subpastas de processos.</p>
+
+                <div class="actions">
+                    <button type="submit">Criar Processos pelas Pastas</button>
+                </div>
+            </form>
+        </div>
 
         {% if error_message %}
             <div class="alert error">{{ error_message }}</div>
@@ -43,6 +61,17 @@
                     UF: {{ created_case.uf|default:'-' }} ·
                     Assunto: {{ created_case.assunto|default:'-' }} ·
                     Subassunto: {{ created_case.sub_assunto|default:'-' }}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if created_cases %}
+            <div class="case-card">
+                <div class="title">Processos processados</div>
+                <div class="case-meta">
+                    {% for case in created_cases %}
+                        {{ case.numero_processo }}{% if not forloop.last %} · {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         {% endif %}

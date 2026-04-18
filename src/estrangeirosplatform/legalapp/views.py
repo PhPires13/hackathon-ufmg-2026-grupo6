@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+from django.conf import settings
 from django.db.models import Q
 from django.db.models.functions import Cast
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,7 +21,6 @@ from .ml_service import (
 )
 
 from .forms import LawyerActionCreateForm
-from .models import LegalCase
 
 
 def cases_list_page(request):
@@ -61,44 +63,97 @@ def cases_list_page(request):
 
 
 def create_case_page(request):
-	from .pdf_import import extract_documents_from_uploads, upsert_case_from_documents
+	from .pdf_import import (
+		extract_documents_from_directory,
+		extract_documents_from_uploads,
+		upsert_case_from_documents,
+	)
+
+	default_subsidios_base_dir = '../../data/subsidios'
 
 	context = {
 		'error_message': '',
 		'success_message': '',
 		'created_case': None,
+		'created_cases': [],
+		'subsidios_base_dir': default_subsidios_base_dir,
 		'active_nav': 'create-case',
 	}
 
 	if request.method == 'POST':
-		uploaded_files = request.FILES.getlist('pdf_files')
+		import_mode = (request.POST.get('import_mode') or 'upload_pdf').strip()
 
-		if not uploaded_files:
-			context['error_message'] = 'Envie pelo menos um arquivo PDF.'
-			return render(request, 'legalapp/create-case.html', context)
+		if import_mode == 'import_folder':
+			base_dir_raw = (request.POST.get('subsidios_base_dir') or default_subsidios_base_dir).strip()
+			context['subsidios_base_dir'] = base_dir_raw
 
-		invalid_files = [f.name for f in uploaded_files if not f.name.lower().endswith('.pdf')]
-		if invalid_files:
-			context['error_message'] = (
-				'Apenas PDFs sao permitidos. Arquivos invalidos: '
-				+ ', '.join(invalid_files)
-			)
-			return render(request, 'legalapp/create-case.html', context)
+			base_dir = Path(base_dir_raw).expanduser()
+			if not base_dir.is_absolute():
+				base_dir = (Path(settings.BASE_DIR) / base_dir).resolve()
+			else:
+				base_dir = base_dir.resolve()
+			if not base_dir.exists() or not base_dir.is_dir():
+				context['error_message'] = f'Pasta base de subsidios nao encontrada: {base_dir}'
+				return render(request, 'legalapp/create-case.html', context)
 
-		try:
-			documents_payload = extract_documents_from_uploads(uploaded_files)
-			legal_case, _summary_text = upsert_case_from_documents(documents_payload)
-			gerar_recomendacao_caso(legal_case)
-		except ValueError as exc:
-			context['error_message'] = str(exc)
-			return render(request, 'legalapp/create-case.html', context)
-		except Exception:
-			context['error_message'] = 'Nao foi possivel processar os arquivos enviados.'
-			return render(request, 'legalapp/create-case.html', context)
+			process_dirs = sorted(p for p in base_dir.iterdir() if p.is_dir())
+			if not process_dirs:
+				context['error_message'] = f'Nenhuma pasta de processo encontrada em: {base_dir}'
+				return render(request, 'legalapp/create-case.html', context)
 
-		context['success_message'] = 'Processo cadastrado e extraido com sucesso.'
-		context['created_case'] = legal_case
-		context['cases_url'] = reverse('legalapp:cases-list')
+			created_cases = []
+			errors = []
+			for process_dir in process_dirs:
+				try:
+					documents_payload = extract_documents_from_directory(process_dir)
+					legal_case, _summary_text = upsert_case_from_documents(
+						documents_payload,
+						case_name_hint=process_dir.name,
+					)
+					created_cases.append(legal_case)
+				except ValueError as exc:
+					errors.append(f'{process_dir.name}: {exc}')
+				except Exception:
+					errors.append(f'{process_dir.name}: falha inesperada ao processar pasta')
+
+			if not created_cases:
+				context['error_message'] = 'Nao foi possivel processar nenhuma pasta. ' + ' | '.join(errors)
+				return render(request, 'legalapp/create-case.html', context)
+
+			context['success_message'] = f'{len(created_cases)} processo(s) cadastrado(s)/atualizado(s) com sucesso pela pasta de subsidios.'
+			if errors:
+				context['success_message'] += ' Pastas com erro: ' + ' | '.join(errors)
+			context['created_case'] = created_cases[0]
+			context['created_cases'] = created_cases
+			context['cases_url'] = reverse('legalapp:cases-list')
+		else:
+			uploaded_files = request.FILES.getlist('pdf_files')
+
+			if not uploaded_files:
+				context['error_message'] = 'Envie pelo menos um arquivo PDF.'
+				return render(request, 'legalapp/create-case.html', context)
+
+			invalid_files = [f.name for f in uploaded_files if not f.name.lower().endswith('.pdf')]
+			if invalid_files:
+				context['error_message'] = (
+					'Apenas PDFs sao permitidos. Arquivos invalidos: '
+					+ ', '.join(invalid_files)
+				)
+				return render(request, 'legalapp/create-case.html', context)
+
+			try:
+				documents_payload = extract_documents_from_uploads(uploaded_files)
+				legal_case, _summary_text = upsert_case_from_documents(documents_payload)
+			except ValueError as exc:
+				context['error_message'] = str(exc)
+				return render(request, 'legalapp/create-case.html', context)
+			except Exception:
+				context['error_message'] = 'Nao foi possivel processar os arquivos enviados.'
+				return render(request, 'legalapp/create-case.html', context)
+
+			context['success_message'] = 'Processo cadastrado e extraido com sucesso.'
+			context['created_case'] = legal_case
+			context['cases_url'] = reverse('legalapp:cases-list')
 
 	return render(request, 'legalapp/create-case.html', context)
 
@@ -221,8 +276,15 @@ def monitoramento_efetividade_page(request):
 			'total': 0,
 			'taxa_efetividade_pct': 0.0,
 			'taxa_exito_defesa_pct': 0.0,
+			'taxa_aceitacao_acordos_pct': 0.0,
+			'taxa_conversao_acordo_pct': 0.0,
 			'custo_total_politica': 0.0,
 			'custo_medio_caso': 0.0,
+			'valor_esperado_total': 0.0,
+			'economia_liquida_total': 0.0,
+			'economia_media_por_acordo': 0.0,
+			'taxa_casos_custo_abaixo_esperado_pct': 0.0,
+			'exposicao_evitada_defesas_exito': 0.0,
 			'rows': [],
 			'active_nav': 'monitoramento-efetividade',
 		}
@@ -230,16 +292,29 @@ def monitoramento_efetividade_page(request):
 
 	defesas_concluidas = 0
 	defesas_exito = 0
+	total_recomendado_acordo = 0
+	total_acao_acordo = 0
+	total_acordos_aceitos = 0
 	qtd_avaliados = 0
 	qtd_efetivos = 0
 	total_custo = 0.0
+	total_valor_esperado = 0.0
+	economia_liquida_total = 0.0
+	qtd_acordos_comparaveis = 0
+	qtd_casos_abaixo_esperado = 0
+	exposicao_evitada_defesas_exito = 0.0
 	rows = []
 
 	for case in cases:
 		recommendation = case.recommendation
 		action = case.action
 
+		if recommendation.sugestao_acao == 'PROPOR_ACORDO':
+			total_recomendado_acordo += 1
+
 		custo = 0.0
+		valor_esperado = float(recommendation.valor_esperado_condenacao or 0)
+		economia_liquida = 0.0
 		efetivo = None
 		criterio = 'Sem criterio'
 
@@ -257,7 +332,12 @@ def monitoramento_efetividade_page(request):
 			if action.valor_condenacao is not None:
 				custo = float(action.valor_condenacao)
 
+			if efetivo:
+				exposicao_evitada_defesas_exito += valor_esperado
+
 		elif action.acao == 'PROPOR_ACORDO':
+			total_acao_acordo += 1
+			total_acordos_aceitos += 1  # proxy: acordo registrado com valor informado
 			if action.valor_acordo is not None:
 				custo = float(action.valor_acordo)
 
@@ -270,6 +350,14 @@ def monitoramento_efetividade_page(request):
 			else:
 				criterio = 'Acordo sem faixa comparavel para avaliacao'
 
+		if valor_esperado > 0:
+			total_valor_esperado += valor_esperado
+			economia_liquida = valor_esperado - custo
+			economia_liquida_total += economia_liquida
+			qtd_acordos_comparaveis += 1 if action.acao == 'PROPOR_ACORDO' else 0
+			if custo <= valor_esperado:
+				qtd_casos_abaixo_esperado += 1
+
 		total_custo += custo
 
 		rows.append({
@@ -280,6 +368,8 @@ def monitoramento_efetividade_page(request):
 			'resultado_macro': action.resultado_macro,
 			'valor_acordo': action.valor_acordo,
 			'valor_condenacao': action.valor_condenacao,
+			'valor_esperado_condenacao': recommendation.valor_esperado_condenacao,
+			'economia_liquida': economia_liquida,
 			'custo': custo,
 			'efetivo': efetivo,
 			'criterio': criterio,
@@ -289,8 +379,15 @@ def monitoramento_efetividade_page(request):
 		'total': total,
 		'taxa_efetividade_pct': ((qtd_efetivos / qtd_avaliados) * 100) if qtd_avaliados else 0.0,
 		'taxa_exito_defesa_pct': ((defesas_exito / defesas_concluidas) * 100) if defesas_concluidas else 0.0,
+		'taxa_aceitacao_acordos_pct': ((total_acordos_aceitos / total_acao_acordo) * 100) if total_acao_acordo else 0.0,
+		'taxa_conversao_acordo_pct': ((total_acao_acordo / total_recomendado_acordo) * 100) if total_recomendado_acordo else 0.0,
 		'custo_total_politica': total_custo,
 		'custo_medio_caso': (total_custo / total) if total else 0.0,
+		'valor_esperado_total': total_valor_esperado,
+		'economia_liquida_total': economia_liquida_total,
+		'economia_media_por_acordo': (economia_liquida_total / qtd_acordos_comparaveis) if qtd_acordos_comparaveis else 0.0,
+		'taxa_casos_custo_abaixo_esperado_pct': ((qtd_casos_abaixo_esperado / total) * 100) if total else 0.0,
+		'exposicao_evitada_defesas_exito': exposicao_evitada_defesas_exito,
 		'rows': rows,
 		'active_nav': 'monitoramento-efetividade',
 	}

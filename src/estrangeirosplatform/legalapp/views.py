@@ -53,7 +53,11 @@ def cases_list_page(request):
 			)
 		)
 
-	return render(request, 'legalapp/cases-list.html', {'cases': cases, 'query': query})
+	return render(
+		request,
+		'legalapp/cases-list.html',
+		{'cases': cases, 'query': query, 'active_nav': 'cases-list'},
+	)
 
 
 def create_case_page(request):
@@ -63,6 +67,7 @@ def create_case_page(request):
 		'error_message': '',
 		'success_message': '',
 		'created_case': None,
+		'active_nav': 'create-case',
 	}
 
 	if request.method == 'POST':
@@ -150,6 +155,7 @@ def monitoramento_aderencia_page(request):
 			'aderencia_valor_pct': 0.0,
 			'desvio_medio': 0.0,
 			'rows': [],
+			'active_nav': 'monitoramento-aderencia',
 		}
 		return render(request, 'legalapp/monitoramento-aderencia.html', context)
 
@@ -197,9 +203,99 @@ def monitoramento_aderencia_page(request):
 		'aderencia_valor_pct': ((acordos_dentro_faixa / total_acordos_aderentes) * 100) if total_acordos_aderentes else 0.0,
 		'desvio_medio': (soma_shift_abs / qtd_shift) if qtd_shift else 0.0,
 		'rows': rows,
+		'active_nav': 'monitoramento-aderencia',
 	}
 
 	return render(request, 'legalapp/monitoramento-aderencia.html', context)
+
+
+def monitoramento_efetividade_page(request):
+	cases = (
+		LegalCase.objects.select_related('recommendation', 'action')
+		.filter(action__isnull=False, recommendation__isnull=False)
+	)
+
+	total = cases.count()
+	if total == 0:
+		context = {
+			'total': 0,
+			'taxa_efetividade_pct': 0.0,
+			'taxa_exito_defesa_pct': 0.0,
+			'custo_total_politica': 0.0,
+			'custo_medio_caso': 0.0,
+			'rows': [],
+			'active_nav': 'monitoramento-efetividade',
+		}
+		return render(request, 'legalapp/monitoramento-efetividade.html', context)
+
+	defesas_concluidas = 0
+	defesas_exito = 0
+	qtd_avaliados = 0
+	qtd_efetivos = 0
+	total_custo = 0.0
+	rows = []
+
+	for case in cases:
+		recommendation = case.recommendation
+		action = case.action
+
+		custo = 0.0
+		efetivo = None
+		criterio = 'Sem criterio'
+
+		if action.acao == 'DEFENDER':
+			if action.resultado_macro:
+				defesas_concluidas += 1
+				efetivo = action.resultado_macro == 'EXITO'
+				if efetivo:
+					defesas_exito += 1
+				criterio = 'Defesa efetiva quando resultado macro = EXITO'
+				qtd_avaliados += 1
+				if efetivo:
+					qtd_efetivos += 1
+
+			if action.valor_condenacao is not None:
+				custo = float(action.valor_condenacao)
+
+		elif action.acao == 'PROPOR_ACORDO':
+			if action.valor_acordo is not None:
+				custo = float(action.valor_acordo)
+
+			if recommendation.sugestao_acao == 'PROPOR_ACORDO' and action.valor_acordo_in_range is not None:
+				efetivo = bool(action.valor_acordo_in_range)
+				criterio = 'Acordo efetivo quando valor fica na faixa de aderencia'
+				qtd_avaliados += 1
+				if efetivo:
+					qtd_efetivos += 1
+			else:
+				criterio = 'Acordo sem faixa comparavel para avaliacao'
+
+		total_custo += custo
+
+		rows.append({
+			'case_id': case.id,
+			'numero_processo': case.numero_processo,
+			'acao_recomendada': recommendation.sugestao_acao,
+			'acao_tomada': action.acao,
+			'resultado_macro': action.resultado_macro,
+			'valor_acordo': action.valor_acordo,
+			'valor_condenacao': action.valor_condenacao,
+			'custo': custo,
+			'efetivo': efetivo,
+			'criterio': criterio,
+		})
+
+	context = {
+		'total': total,
+		'taxa_efetividade_pct': ((qtd_efetivos / qtd_avaliados) * 100) if qtd_avaliados else 0.0,
+		'taxa_exito_defesa_pct': ((defesas_exito / defesas_concluidas) * 100) if defesas_concluidas else 0.0,
+		'custo_total_politica': total_custo,
+		'custo_medio_caso': (total_custo / total) if total else 0.0,
+		'rows': rows,
+		'active_nav': 'monitoramento-efetividade',
+	}
+
+	return render(request, 'legalapp/monitoramento-efetividade.html', context)
 
 
 def gerar_recomendacao_caso(

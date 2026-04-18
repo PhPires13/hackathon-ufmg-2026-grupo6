@@ -5,17 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Casos Jurídicos</title>
+    <link rel="stylesheet" href="{% static 'legalapp/css/sidebar-nav.css' %}">
     <link rel="stylesheet" href="{% static 'legalapp/css/legal-cases.css' %}">
 </head>
 <body>
+    <div class="layout">
+        {% include 'legalapp/_sidebar.html' %}
+        <main class="content">
     <div class="page">
         <section class="hero">  
             <div class="hero-header">
                 <h1>Casos jurídicos</h1>
-                <div class="hero-actions">
-                    <a class="hero-btn" href="{% url 'legalapp:monitoramento-aderencia' %}">Monitoramento de aderência</a>
-                    <a class="hero-btn" href="{% url 'legalapp:create-case' %}">Cadastrar Processo</a>
-                </div>
             </div>
             <p>Pesquise por número do processo, recomendação ou ação tomada.</p>
 
@@ -83,6 +83,8 @@
                 </table>
             </div>
         </section>
+    </div>
+        </main>
     </div>
     <script>
         document.querySelectorAll('.case-row').forEach(function (row) {

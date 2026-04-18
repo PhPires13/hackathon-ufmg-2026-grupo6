@@ -5,13 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastrar Processo</title>
+    <link rel="stylesheet" href="{% static 'legalapp/css/sidebar-nav.css' %}">
     <link rel="stylesheet" href="{% static 'legalapp/css/create-case.css' %}">
 </head>
 <body>
+    <div class="layout">
+        {% include 'legalapp/_sidebar.html' %}
+        <main class="content">
     <div class="box">
         <h1>Cadastrar Processo</h1>
         <p>Envie os PDFs.</p>
-        <a class="top-link" href="{% url 'legalapp:cases-list' %}">Voltar para lista de casos</a>
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
@@ -43,6 +46,8 @@
                 </div>
             </div>
         {% endif %}
+    </div>
+        </main>
     </div>
 </body>
 </html>

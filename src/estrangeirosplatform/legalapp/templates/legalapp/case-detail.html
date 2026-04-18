@@ -242,6 +242,24 @@
                         {{ action_form.valor_acordo.errors }}
                     </div>
 
+                    <div class="form-row" id="resultado-macro-row">
+                        <label for="{{ action_form.resultado_macro.id_for_label }}">Resultado macro</label>
+                        {{ action_form.resultado_macro }}
+                        {{ action_form.resultado_macro.errors }}
+                    </div>
+
+                    <div class="form-row" id="resultado-micro-row">
+                        <label for="{{ action_form.resultado_micro.id_for_label }}">Resultado micro</label>
+                        {{ action_form.resultado_micro }}
+                        {{ action_form.resultado_micro.errors }}
+                    </div>
+
+                    <div class="form-row" id="valor-condenacao-row">
+                        <label for="{{ action_form.valor_condenacao.id_for_label }}">Valor condenacao</label>
+                        {{ action_form.valor_condenacao }}
+                        {{ action_form.valor_condenacao.errors }}
+                    </div>
+
                     <button class="btn-primary" type="submit">Salvar ação</button>
                 </form>
             {% endif %}
@@ -252,21 +270,35 @@
         (function () {
             var acao = document.getElementById('id_acao');
             var valorAcordoRow = document.getElementById('valor-acordo-row');
+            var resultadoMacroRow = document.getElementById('resultado-macro-row');
+            var resultadoMicroRow = document.getElementById('resultado-micro-row');
+            var valorCondenacaoRow = document.getElementById('valor-condenacao-row');
 
-            if (!acao || !valorAcordoRow) {
+            if (!acao || !valorAcordoRow || !resultadoMacroRow || !resultadoMicroRow || !valorCondenacaoRow) {
                 return;
             }
 
-            function toggleValorAcordo() {
+            function toggleActionFields() {
                 if (acao.value === 'PROPOR_ACORDO') {
                     valorAcordoRow.style.display = 'block';
+                    resultadoMacroRow.style.display = 'none';
+                    resultadoMicroRow.style.display = 'none';
+                    valorCondenacaoRow.style.display = 'none';
+                } else if (acao.value === 'DEFENDER') {
+                    valorAcordoRow.style.display = 'none';
+                    resultadoMacroRow.style.display = 'block';
+                    resultadoMicroRow.style.display = 'block';
+                    valorCondenacaoRow.style.display = 'block';
                 } else {
                     valorAcordoRow.style.display = 'none';
+                    resultadoMacroRow.style.display = 'none';
+                    resultadoMicroRow.style.display = 'none';
+                    valorCondenacaoRow.style.display = 'none';
                 }
             }
 
-            toggleValorAcordo();
-            acao.addEventListener('change', toggleValorAcordo);
+            toggleActionFields();
+            acao.addEventListener('change', toggleActionFields);
         })();
     </script>
 </body>

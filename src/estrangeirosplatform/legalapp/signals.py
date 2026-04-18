@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .ml_service import gerar_recomendacao_caso
+from .views import gerar_recomendacao_caso
 from .models import CaseRecommendation, LegalCase
 
 logger = logging.getLogger(__name__)

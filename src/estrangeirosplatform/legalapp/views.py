@@ -88,6 +88,7 @@ def create_case_page(request):
 		try:
 			documents_payload = extract_documents_from_uploads(uploaded_files)
 			legal_case, _summary_text = upsert_case_from_documents(documents_payload)
+			gerar_recomendacao_caso(legal_case)
 		except ValueError as exc:
 			context['error_message'] = str(exc)
 			return render(request, 'legalapp/create-case.html', context)
@@ -107,7 +108,10 @@ def case_detail_page(request, case_id):
 		LegalCase.objects.prefetch_related('documents').select_related('recommendation', 'action'),
 		id=case_id,
 	)
-	recommendation = gerar_recomendacao_caso(legal_case)
+	try:
+		recommendation = legal_case.recommendation
+	except ObjectDoesNotExist:
+		recommendation = None
 
 	try:
 		action = legal_case.action

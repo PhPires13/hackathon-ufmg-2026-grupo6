@@ -6,7 +6,7 @@
     <title>Cadastrar Processo</title>
     <style>
         :root {
-            --bg: #f4f7fb;
+            --bg: #f7f8fb;
             --card: #ffffff;
             --text: #1f2937;
             --muted: #6b7280;
@@ -24,7 +24,7 @@
             margin: 0;
             min-height: 100vh;
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 40%, #eef2f7 100%);
+            background: var(--bg);
             color: var(--text);
             display: grid;
             place-items: center;
@@ -32,78 +32,77 @@
         }
 
         .box {
-            width: min(780px, 100%);
-            padding: 28px;
-            border-radius: 24px;
+            width: min(560px, 100%);
+            padding: 24px;
+            border-radius: 16px;
             background: var(--card);
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            border: 1px solid #ffffff;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            border: 1px solid var(--line);
         }
 
         h1 {
-            margin: 0 0 8px;
-            font-size: clamp(1.6rem, 2.4vw, 2.1rem);
-            letter-spacing: -0.02em;
+            margin: 0;
+            font-size: 1.35rem;
         }
 
         p {
-            margin: 0;
+            margin: 6px 0 0;
             color: var(--muted);
+            font-size: 0.94rem;
         }
 
         .top-link {
             display: inline-block;
-            margin-top: 14px;
-            font-weight: 600;
+            margin-top: 10px;
+            font-weight: 500;
+            font-size: 0.92rem;
             color: var(--accent);
             text-decoration: none;
         }
 
         form {
-            margin-top: 26px;
+            margin-top: 18px;
             border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 18px;
-            background: #fbfdff;
+            border-radius: 12px;
+            padding: 14px;
+            background: #fff;
         }
 
         label {
             display: block;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
         }
 
         .help {
-            font-size: 0.92rem;
+            font-size: 0.86rem;
             color: var(--muted);
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         input[type="file"] {
             display: block;
             width: 100%;
-            border: 1px dashed #93c5fd;
-            border-radius: 12px;
-            padding: 14px;
-            background: #eff6ff;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f8fafc;
         }
 
         .actions {
-            margin-top: 16px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            margin-top: 12px;
         }
 
         button {
             border: 0;
-            border-radius: 12px;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            border-radius: 10px;
+            padding: 10px 14px;
+            background: var(--accent);
             color: #fff;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.24);
+            box-shadow: none;
         }
 
         .alert {
@@ -126,13 +125,13 @@
         .case-card {
             margin-top: 14px;
             border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 14px;
+            border-radius: 10px;
+            padding: 12px;
             background: #fff;
         }
 
         .case-card .title {
-            font-size: 0.82rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             color: var(--muted);
@@ -140,27 +139,27 @@
         }
 
         .case-card .value {
-            font-size: 1.04rem;
+            font-size: 0.98rem;
             font-weight: 700;
         }
 
         .case-meta {
-            margin-top: 10px;
+            margin-top: 8px;
             color: var(--muted);
-            font-size: 0.94rem;
+            font-size: 0.88rem;
         }
     </style>
 </head>
 <body>
     <div class="box">
         <h1>Cadastrar Processo</h1>
-        <p>Envie os PDFs do processo para extrair dados e alimentar o banco automaticamente.</p>
+        <p>Envie os PDFs.</p>
         <a class="top-link" href="{% url 'legalapp:legal-cases' %}">Voltar para lista de casos</a>
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <label for="pdf_files">Arquivos PDF do processo</label>
-            <p class="help">Pode enviar varios arquivos. Exemplo: autos, contrato, extrato, comprovante, dossie, laudo.</p>
+            <p class="help">Selecione um ou mais arquivos.</p>
             <input id="pdf_files" type="file" name="pdf_files" accept="application/pdf" multiple required>
 
             <div class="actions">

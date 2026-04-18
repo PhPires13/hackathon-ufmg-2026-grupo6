@@ -223,6 +223,9 @@
                     <div class="field"><span class="field-label">Resultado macro</span>{{ action.resultado_macro|default:'-' }}</div>
                     <div class="field"><span class="field-label">Resultado micro</span>{{ action.resultado_micro|default:'-' }}</div>
                     <div class="field"><span class="field-label">Valor condenação</span>{{ action.valor_condenacao|default:'-' }}</div>
+                    <div class="field"><span class="field-label">Same action taken</span>{{ action.same_action_taken|yesno:'Sim,Não' }}</div>
+                    <div class="field"><span class="field-label">Valor acordo in range</span>{{ action.valor_acordo_in_range|yesno:'Sim,Não' }}</div>
+                    <div class="field"><span class="field-label">Shift valor acordo</span>{{ action.shift_valor_acordo|default:'-' }}</div>
                 </div>
             {% else %}
                 <p class="note">Ainda não existe ação registrada. Preencha para criar.</p>

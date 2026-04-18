@@ -110,6 +110,7 @@ def create_case_page(request):
 						documents_payload,
 						case_name_hint=process_dir.name,
 					)
+					gerar_recomendacao_caso(legal_case)
 					created_cases.append(legal_case)
 				except ValueError as exc:
 					errors.append(f'{process_dir.name}: {exc}')
@@ -144,6 +145,7 @@ def create_case_page(request):
 			try:
 				documents_payload = extract_documents_from_uploads(uploaded_files)
 				legal_case, _summary_text = upsert_case_from_documents(documents_payload)
+				gerar_recomendacao_caso(legal_case)
 			except ValueError as exc:
 				context['error_message'] = str(exc)
 				return render(request, 'legalapp/create-case.html', context)

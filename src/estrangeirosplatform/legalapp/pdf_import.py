@@ -83,6 +83,39 @@ def text_file_to_text(file_path: Path) -> tuple[str, int]:
     return content, 1
 
 
+def docx_file_to_text(file_path: Path) -> tuple[str, int]:
+    try:
+        from docx import Document
+    except ImportError as exc:
+        raise ValueError('Para ler arquivos DOCX instale a dependencia python-docx.') from exc
+
+    document = Document(str(file_path))
+    paragraphs = [p.text for p in document.paragraphs if p.text]
+    content = '\n'.join(paragraphs)
+    return content, max(len(paragraphs), 1)
+
+
+def image_file_to_text(file_path: Path) -> tuple[str, int]:
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ValueError('Para OCR em imagens instale a dependencia Pillow.') from exc
+
+    try:
+        import pytesseract
+    except ImportError as exc:
+        raise ValueError('Para OCR em imagens instale a dependencia pytesseract.') from exc
+
+    try:
+        image = Image.open(file_path)
+        content = pytesseract.image_to_string(image, lang='por+eng')
+        return content, 1
+    except Exception as exc:
+        raise ValueError(
+            'Nao foi possivel executar OCR da imagem. Verifique se o Tesseract esta instalado no sistema.'
+        ) from exc
+
+
 def parse_decimal_brl(value: str) -> Decimal:
     normalized = value.replace('.', '').replace(',', '.').strip()
     try:
@@ -206,7 +239,10 @@ def upsert_case_from_documents(
 
 
 def extract_documents_from_directory(case_dir: Path) -> list[dict]:
-    allowed_suffixes = {'.pdf', '.txt', '.text', '.md'}
+    text_suffixes = {'.txt', '.text', '.md'}
+    docx_suffixes = {'.docx'}
+    image_suffixes = {'.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff', '.webp'}
+    allowed_suffixes = {'.pdf'} | text_suffixes | docx_suffixes | image_suffixes
     candidate_files = sorted(
         f for f in case_dir.iterdir()
         if f.is_file() and f.suffix.lower() in allowed_suffixes
@@ -219,8 +255,14 @@ def extract_documents_from_directory(case_dir: Path) -> list[dict]:
         suffix = input_file.suffix.lower()
         if suffix == '.pdf':
             extracted_text, pages = pdf_path_to_text(input_file)
-        else:
+        elif suffix in text_suffixes:
             extracted_text, pages = text_file_to_text(input_file)
+        elif suffix in docx_suffixes:
+            extracted_text, pages = docx_file_to_text(input_file)
+        elif suffix in image_suffixes:
+            extracted_text, pages = image_file_to_text(input_file)
+        else:
+            raise ValueError(f'Tipo de arquivo nao suportado: {input_file.name}')
 
         documents_payload.append({
             'file_name': input_file.name,

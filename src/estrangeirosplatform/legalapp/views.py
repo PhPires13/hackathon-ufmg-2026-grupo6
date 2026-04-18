@@ -314,38 +314,44 @@ def monitoramento_efetividade_page(request):
 		economia_liquida = 0.0
 		efetivo = None
 		criterio = 'Sem criterio'
+		tem_custo_observado = False
 
 		if action.acao == 'DEFENDER':
 			if action.resultado_macro:
 				defesas_concluidas += 1
-				efetivo = action.resultado_macro == 'EXITO'
+				efetivo_defesa = action.resultado_macro == 'EXITO'
+				efetivo = efetivo_defesa
 				if efetivo:
 					defesas_exito += 1
-				criterio = 'Defesa efetiva quando resultado macro = EXITO'
-				qtd_avaliados += 1
-				if efetivo:
-					qtd_efetivos += 1
+				criterio = 'Defesa com exito no resultado macro'
 
 			if action.valor_condenacao is not None:
 				custo = float(action.valor_condenacao)
+				tem_custo_observado = True
 
 			if efetivo:
 				exposicao_evitada_defesas_exito += valor_esperado
 
 		elif action.acao == 'PROPOR_ACORDO':
 			total_acao_acordo += 1
-			total_acordos_aceitos += 1  # proxy: acordo registrado com valor informado
 			if action.valor_acordo is not None:
 				custo = float(action.valor_acordo)
+				tem_custo_observado = True
+				total_acordos_aceitos += 1  # proxy: acordo registrado com valor informado
 
 			if recommendation.sugestao_acao == 'PROPOR_ACORDO' and action.valor_acordo_in_range is not None:
-				efetivo = bool(action.valor_acordo_in_range)
-				criterio = 'Acordo efetivo quando valor fica na faixa de aderencia'
-				qtd_avaliados += 1
-				if efetivo:
-					qtd_efetivos += 1
+				criterio = 'Acordo com faixa de aderencia calculada'
 			else:
-				criterio = 'Acordo sem faixa comparavel para avaliacao'
+				criterio = 'Acordo sem faixa de aderencia comparavel'
+
+		if valor_esperado > 0 and tem_custo_observado:
+			limite_inferior = valor_esperado * 0.80
+			limite_superior = valor_esperado * 1.20
+			efetivo = limite_inferior <= custo <= limite_superior
+			criterio = 'Efetivo financeiro quando custo observado fica dentro de +/-20% da condenacao esperada'
+			qtd_avaliados += 1
+			if efetivo:
+				qtd_efetivos += 1
 
 		if valor_esperado > 0:
 			total_valor_esperado += valor_esperado

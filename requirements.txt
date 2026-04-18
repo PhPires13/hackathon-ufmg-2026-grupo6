@@ -6,6 +6,9 @@ lightgbm
 numpy
 pandas
 pypdf
+python-docx
+pytesseract
+Pillow
 python-dateutil
 pytz
 scikit-learn

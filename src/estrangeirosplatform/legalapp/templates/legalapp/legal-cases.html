@@ -159,6 +159,15 @@
             background: #f8fbff;
         }
 
+        .case-row {
+            cursor: pointer;
+        }
+
+        .case-row:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
+        }
+
         .process {
             font-weight: 700;
             font-size: 1rem;
@@ -247,7 +256,7 @@
                     </thead>
                     <tbody>
                         {% for case in cases %}
-                            <tr>
+                            <tr class="case-row" data-href="{% url 'legalapp:case-detail' case.id %}" tabindex="0" role="link" aria-label="Abrir caso {{ case.numero_processo }}">
                                 <td>
                                     <div class="process">{{ case.numero_processo }}</div>
                                     <div class="subtext">
@@ -288,6 +297,20 @@
             </div>
         </section>
     </div>
+    <script>
+        document.querySelectorAll('.case-row').forEach(function (row) {
+            row.addEventListener('click', function () {
+                window.location.href = row.dataset.href;
+            });
+
+            row.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    window.location.href = row.dataset.href;
+                }
+            });
+        });
+    </script>
 </body>
 </html>
 

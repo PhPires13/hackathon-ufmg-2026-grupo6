@@ -1,11 +1,12 @@
 from django.db.models import Q
 from django.db.models.functions import Cast
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import CharField
 from django.urls import reverse
+from django.core.exceptions import ObjectDoesNotExist
 
+from .forms import LawyerActionCreateForm
 from .models import LegalCase
-from .pdf_import import extract_documents_from_uploads, upsert_case_from_documents
 
 
 def legal_cases_page(request):
@@ -44,6 +45,8 @@ def legal_cases_page(request):
 
 
 def create_case_page(request):
+	from .pdf_import import extract_documents_from_uploads, upsert_case_from_documents
+
 	context = {
 		'error_message': '',
 		'success_message': '',
@@ -80,4 +83,45 @@ def create_case_page(request):
 		context['cases_url'] = reverse('legalapp:legal-cases')
 
 	return render(request, 'legalapp/create-case.html', context)
+
+
+def case_detail_page(request, case_id):
+	legal_case = get_object_or_404(
+		LegalCase.objects.prefetch_related('documents').select_related('recommendation', 'action'),
+		id=case_id,
+	)
+
+	try:
+		recommendation = legal_case.recommendation
+	except ObjectDoesNotExist:
+		recommendation = None
+
+	try:
+		action = legal_case.action
+	except ObjectDoesNotExist:
+		action = None
+
+	action_form = None
+
+	if action is None:
+		if request.method == 'POST':
+			action_form = LawyerActionCreateForm(request.POST)
+			if action_form.is_valid():
+				new_action = action_form.save(commit=False)
+				new_action.case = legal_case
+				new_action.save()
+				return redirect('legalapp:case-detail', case_id=legal_case.id)
+		else:
+			action_form = LawyerActionCreateForm()
+
+	context = {
+		'case': legal_case,
+		'documents': legal_case.documents.all(),
+		'recommendation': recommendation,
+		'action': action,
+		'action_form': action_form,
+	}
+
+	return render(request, 'legalapp/case-detail.html', context)
+
 

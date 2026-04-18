@@ -159,6 +159,7 @@ class CaseRecommendation(TimeStampedModel):
 	valor_para_acordo = models.DecimalField(
 		max_digits=10,
 		decimal_places=2,
+		null=True,
 		validators=[MinValueValidator(0)],
 	)
 
@@ -181,6 +182,7 @@ class LawyerAction(TimeStampedModel):
 	valor_acordo = models.DecimalField(
 		max_digits=10,
 		decimal_places=2,
+		null=True,
 		validators=[MinValueValidator(0)],
 	)
 

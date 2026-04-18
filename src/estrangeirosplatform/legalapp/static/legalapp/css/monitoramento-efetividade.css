@@ -1,10 +1,10 @@
 :root {
-    --bg: #f5f7fb;
+    --bg: #f2f2f3;
     --card: #ffffff;
     --text: #1f2933;
     --muted: #5f6b7a;
-    --line: #dce3ea;
-    --primary: #0b5cab;
+    --line: #d4d7dd;
+    --primary: #facc15;
     --ok: #157347;
     --no: #b02a37;
     --na: #6c757d;
@@ -17,8 +17,9 @@
 body {
     margin: 0;
     color: var(--text);
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: radial-gradient(circle at top right, #e9f1fa 0%, var(--bg) 55%);
+    font-family: "Manrope", "Sora", "Avenir Next", "Segoe UI", sans-serif;
+    background: radial-gradient(circle at 84% 5%, rgba(250, 204, 21, 0.18), transparent 30%),
+                linear-gradient(180deg, #f7f7f8 0%, var(--bg) 30%, #eeeff1 100%);
 }
 
 .page {
@@ -46,8 +47,9 @@ body {
 
 .back-btn {
     text-decoration: none;
-    color: white;
+    color: #111827;
     background: var(--primary);
+    border: 1px solid #d8a603;
     border-radius: 8px;
     padding: 10px 14px;
     font-weight: 600;

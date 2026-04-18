@@ -1,13 +1,13 @@
 :root {
-    --bg: #f4f6f8;
+    --bg: #f2f2f3;
     --card: #ffffff;
     --text: #20232a;
     --muted: #5a6472;
-    --line: #dde3ea;
+    --line: #d4d7dd;
     --ok: #198754;
     --no: #c0392b;
     --na: #6c757d;
-    --accent: #005792;
+    --accent: #facc15;
 }
 
 * {
@@ -16,8 +16,9 @@
 
 body {
     margin: 0;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
+    font-family: "Manrope", "Sora", "Avenir Next", "Segoe UI", sans-serif;
+    background: radial-gradient(circle at 84% 5%, rgba(250, 204, 21, 0.18), transparent 30%),
+                linear-gradient(180deg, #f7f7f8 0%, var(--bg) 30%, #eeeff1 100%);
     color: var(--text);
 }
 
@@ -47,7 +48,8 @@ body {
 .back-btn {
     text-decoration: none;
     background: var(--accent);
-    color: #fff;
+    color: #111827;
+    border: 1px solid #d8a603;
     padding: 10px 14px;
     border-radius: 8px;
     font-weight: 600;

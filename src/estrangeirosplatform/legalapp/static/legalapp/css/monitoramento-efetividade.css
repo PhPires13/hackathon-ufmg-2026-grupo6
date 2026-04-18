@@ -85,10 +85,51 @@ body {
     border: 1px solid var(--line);
     border-radius: 12px;
     padding: 16px;
+    margin-bottom: 18px;
 }
 
 .table-card h3 {
     margin-top: 0;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.chart-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card h3 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+}
+
+.chart-card canvas {
+    flex: 1;
+    min-height: 0;
+    max-height: 260px;
+}
+
+@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .table-wrap {

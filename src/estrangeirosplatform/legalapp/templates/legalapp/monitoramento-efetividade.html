@@ -34,12 +34,40 @@
                 <p>Taxa de êxito nas defesas</p>
             </article>
             <article class="kpi-card">
+                <h2>{{ taxa_aceitacao_acordos_pct|floatformat:1 }}%</h2>
+                <p>Taxa de aceitação dos acordos (proxy operacional)</p>
+            </article>
+            <article class="kpi-card">
+                <h2>{{ taxa_conversao_acordo_pct|floatformat:1 }}%</h2>
+                <p>Conversão em acordo quando recomendado</p>
+            </article>
+            <article class="kpi-card">
                 <h2>R$ {{ custo_total_politica|floatformat:2 }}</h2>
                 <p>Custo total observado</p>
             </article>
             <article class="kpi-card">
                 <h2>R$ {{ custo_medio_caso|floatformat:2 }}</h2>
                 <p>Custo médio por caso</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ valor_esperado_total|floatformat:2 }}</h2>
+                <p>Exposição esperada total (modelo)</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ economia_liquida_total|floatformat:2 }}</h2>
+                <p>Economia líquida vs. condenação esperada</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ economia_media_por_acordo|floatformat:2 }}</h2>
+                <p>Economia média por acordo</p>
+            </article>
+            <article class="kpi-card">
+                <h2>{{ taxa_casos_custo_abaixo_esperado_pct|floatformat:1 }}%</h2>
+                <p>Casos com custo abaixo do esperado</p>
+            </article>
+            <article class="kpi-card">
+                <h2>R$ {{ exposicao_evitada_defesas_exito|floatformat:2 }}</h2>
+                <p>Exposição evitada nas defesas com êxito</p>
             </article>
         </section>
 
@@ -55,6 +83,8 @@
                             <th>Resultado macro</th>
                             <th>Valor acordo</th>
                             <th>Valor condenação</th>
+                            <th>Condenação esperada</th>
+                            <th>Economia líquida</th>
                             <th>Custo no caso</th>
                             <th>Status efetividade</th>
                             <th>Critério</th>
@@ -69,6 +99,8 @@
                                 <td>{{ row.resultado_macro|default:'-' }}</td>
                                 <td>{{ row.valor_acordo|default:'-' }}</td>
                                 <td>{{ row.valor_condenacao|default:'-' }}</td>
+                                <td>{{ row.valor_esperado_condenacao|default:'-' }}</td>
+                                <td>R$ {{ row.economia_liquida|floatformat:2 }}</td>
                                 <td>R$ {{ row.custo|floatformat:2 }}</td>
                                 <td>
                                     {% if row.efetivo is None %}
@@ -83,7 +115,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="9" class="empty">Nenhum caso disponível para monitoramento.</td>
+                                <td colspan="11" class="empty">Nenhum caso disponível para monitoramento.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

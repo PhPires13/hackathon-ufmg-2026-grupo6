@@ -273,8 +273,15 @@ def monitoramento_efetividade_page(request):
 			'total': 0,
 			'taxa_efetividade_pct': 0.0,
 			'taxa_exito_defesa_pct': 0.0,
+			'taxa_aceitacao_acordos_pct': 0.0,
+			'taxa_conversao_acordo_pct': 0.0,
 			'custo_total_politica': 0.0,
 			'custo_medio_caso': 0.0,
+			'valor_esperado_total': 0.0,
+			'economia_liquida_total': 0.0,
+			'economia_media_por_acordo': 0.0,
+			'taxa_casos_custo_abaixo_esperado_pct': 0.0,
+			'exposicao_evitada_defesas_exito': 0.0,
 			'rows': [],
 			'active_nav': 'monitoramento-efetividade',
 		}
@@ -282,16 +289,29 @@ def monitoramento_efetividade_page(request):
 
 	defesas_concluidas = 0
 	defesas_exito = 0
+	total_recomendado_acordo = 0
+	total_acao_acordo = 0
+	total_acordos_aceitos = 0
 	qtd_avaliados = 0
 	qtd_efetivos = 0
 	total_custo = 0.0
+	total_valor_esperado = 0.0
+	economia_liquida_total = 0.0
+	qtd_acordos_comparaveis = 0
+	qtd_casos_abaixo_esperado = 0
+	exposicao_evitada_defesas_exito = 0.0
 	rows = []
 
 	for case in cases:
 		recommendation = case.recommendation
 		action = case.action
 
+		if recommendation.sugestao_acao == 'PROPOR_ACORDO':
+			total_recomendado_acordo += 1
+
 		custo = 0.0
+		valor_esperado = float(recommendation.valor_esperado_condenacao or 0)
+		economia_liquida = 0.0
 		efetivo = None
 		criterio = 'Sem criterio'
 
@@ -309,7 +329,12 @@ def monitoramento_efetividade_page(request):
 			if action.valor_condenacao is not None:
 				custo = float(action.valor_condenacao)
 
+			if efetivo:
+				exposicao_evitada_defesas_exito += valor_esperado
+
 		elif action.acao == 'PROPOR_ACORDO':
+			total_acao_acordo += 1
+			total_acordos_aceitos += 1  # proxy: acordo registrado com valor informado
 			if action.valor_acordo is not None:
 				custo = float(action.valor_acordo)
 
@@ -322,6 +347,14 @@ def monitoramento_efetividade_page(request):
 			else:
 				criterio = 'Acordo sem faixa comparavel para avaliacao'
 
+		if valor_esperado > 0:
+			total_valor_esperado += valor_esperado
+			economia_liquida = valor_esperado - custo
+			economia_liquida_total += economia_liquida
+			qtd_acordos_comparaveis += 1 if action.acao == 'PROPOR_ACORDO' else 0
+			if custo <= valor_esperado:
+				qtd_casos_abaixo_esperado += 1
+
 		total_custo += custo
 
 		rows.append({
@@ -332,6 +365,8 @@ def monitoramento_efetividade_page(request):
 			'resultado_macro': action.resultado_macro,
 			'valor_acordo': action.valor_acordo,
 			'valor_condenacao': action.valor_condenacao,
+			'valor_esperado_condenacao': recommendation.valor_esperado_condenacao,
+			'economia_liquida': economia_liquida,
 			'custo': custo,
 			'efetivo': efetivo,
 			'criterio': criterio,
@@ -341,8 +376,15 @@ def monitoramento_efetividade_page(request):
 		'total': total,
 		'taxa_efetividade_pct': ((qtd_efetivos / qtd_avaliados) * 100) if qtd_avaliados else 0.0,
 		'taxa_exito_defesa_pct': ((defesas_exito / defesas_concluidas) * 100) if defesas_concluidas else 0.0,
+		'taxa_aceitacao_acordos_pct': ((total_acordos_aceitos / total_acao_acordo) * 100) if total_acao_acordo else 0.0,
+		'taxa_conversao_acordo_pct': ((total_acao_acordo / total_recomendado_acordo) * 100) if total_recomendado_acordo else 0.0,
 		'custo_total_politica': total_custo,
 		'custo_medio_caso': (total_custo / total) if total else 0.0,
+		'valor_esperado_total': total_valor_esperado,
+		'economia_liquida_total': economia_liquida_total,
+		'economia_media_por_acordo': (economia_liquida_total / qtd_acordos_comparaveis) if qtd_acordos_comparaveis else 0.0,
+		'taxa_casos_custo_abaixo_esperado_pct': ((qtd_casos_abaixo_esperado / total) * 100) if total else 0.0,
+		'exposicao_evitada_defesas_exito': exposicao_evitada_defesas_exito,
 		'rows': rows,
 		'active_nav': 'monitoramento-efetividade',
 	}

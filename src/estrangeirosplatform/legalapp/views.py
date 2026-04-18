@@ -107,11 +107,7 @@ def case_detail_page(request, case_id):
 		LegalCase.objects.prefetch_related('documents').select_related('recommendation', 'action'),
 		id=case_id,
 	)
-
-	try:
-		recommendation = legal_case.recommendation
-	except ObjectDoesNotExist:
-		recommendation = None
+	recommendation = gerar_recomendacao_caso(legal_case)
 
 	try:
 		action = legal_case.action
@@ -340,7 +336,7 @@ def gerar_recomendacao_caso(
 
 	if expected_loss > limiar:
 		sugestao_acao = "PROPOR_ACORDO"
-		valor_para_acordo = settlement_factor * valor_condenacao_estimado
+		valor_para_acordo = settlement_factor * expected_loss
 	else:
 		sugestao_acao = "DEFENDER"
 		valor_para_acordo = None

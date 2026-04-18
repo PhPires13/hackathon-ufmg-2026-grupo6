@@ -59,6 +59,7 @@
                     <div class="field"><span class="field-label">Probabilidade de perder</span>{{ recommendation.probabilidade_perder_caso }}</div>
                     <div class="field"><span class="field-label">Valor esperado condenação</span>{{ recommendation.valor_esperado_condenacao }}</div>
                     <div class="field"><span class="field-label">Valor para acordo</span>{{ recommendation.valor_para_acordo|default:'-' }}</div>
+                    <div class="field insight-field"><span class="field-label">Insight da IA</span>{{ recommendation.insight_ia|default:'-' }}</div>
                 </div>
             {% else %}
                 <p class="text-muted">Sem recomendação cadastrada.</p>

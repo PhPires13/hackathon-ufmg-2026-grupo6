@@ -30,6 +30,7 @@ def generate_recommendation_on_case_create(sender, instance: LegalCase, created:
                     'valor_esperado_condenacao': Decimal('0.00'),
                     'sugestao_acao': 'DEFENDER',
                     'valor_para_acordo': None,
+                    'insight_ia': 'Insight indisponivel no momento. Reprocessar recomendacao.',
                 },
             )
 

@@ -89,6 +89,12 @@ h2 {
     background: #fafcff;
 }
 
+.insight-field {
+    grid-column: 1 / -1;
+    white-space: pre-wrap;
+    line-height: 1.45;
+}
+
 .field-label {
     display: block;
     color: var(--muted);

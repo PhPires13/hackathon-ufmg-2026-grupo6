@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,168 @@ from .ml_service import (
 )
 
 from .forms import LawyerActionCreateForm
+
+try:
+	from openai import OpenAI
+except Exception:  # pragma: no cover - runtime dependency fallback
+	OpenAI = None
+
+
+def _select_top_fatores(row: dict, keys: list[str]) -> list[str]:
+	"""Extrai fatores principais e os traduz em linguagem natural."""
+	fatores = []
+	
+	# Mapeamento de variáveis técnicas para descrições amigáveis
+	descricoes = {
+		"doc_score": lambda v: f"documentação {'completa' if v >= 3 else 'parcial' if v >= 1 else 'insuficiente'}",
+		"comprovante_de_credito": lambda v: "há comprovante de crédito" if v else "sem comprovante de crédito",
+		"sub_assunto": lambda v: f"caso de {v.lower()}",
+		"qtd_docs": lambda v: f"{int(v)} documento{'s' if v != 1 else ''} anexado{'s' if v != 1 else ''}",
+		"demonstrativo_de_evolucao_da_divida": lambda v: "há demonstrativo de evolução da dívida" if v else "sem demonstrativo de evolução",
+		"valor_da_causa": lambda v: f"valor da causa: R$ {v:,.0f}",
+		"uf": lambda v: f"processo em {v}",
+	}
+	
+	for key in keys:
+		value = row.get(key)
+		if value is None:
+			continue
+		if isinstance(value, (int, float)) and value == 0:
+			continue
+		if isinstance(value, str) and not value.strip():
+			continue
+		
+		# Usa a descrição amigável se existir, senão mostra valor genérico
+		descricao = descricoes.get(key, lambda v: f"{key}: {v}")(value)
+		fatores.append(descricao)
+		if len(fatores) == 4:
+			break
+	
+	return fatores
+
+
+def _insight_fallback(
+	row: dict,
+	prob_perder: float,
+	valor_condenacao_estimado: float,
+	expected_loss: float,
+	limiar: float,
+	sugestao_acao: str,
+) -> str:
+	risk_keys = [
+		"doc_score",
+		"comprovante_de_credito",
+		"sub_assunto",
+		"qtd_docs",
+		"demonstrativo_de_evolucao_da_divida",
+	]
+	cost_keys = [
+		"valor_da_causa",
+		"doc_score",
+		"uf",
+		"qtd_docs",
+	]
+	fatores_risco = ", ".join(_select_top_fatores(row, risk_keys)) or "perfil típico"
+	fatores_custo = ", ".join(_select_top_fatores(row, cost_keys)) or "características padrão"
+	
+	acao_texto = "propor um acordo" if sugestao_acao == "PROPOR_ACORDO" else "defender o caso"
+	risco_texto = f"Alto risco de condenação ({prob_perder:.0%})" if prob_perder > 0.6 else f"Risco moderado ({prob_perder:.0%})"
+	exposicao_texto = f"R$ {valor_condenacao_estimado:,.0f}" if valor_condenacao_estimado > 0 else "valor indeterminado"
+	
+	return (
+		f"**Risco**: {risco_texto} considerando {fatores_risco}. "
+		f"**Exposição Financeira**: Potencial condenação em torno de {exposicao_texto} levando em conta {fatores_custo}. "
+		f"**Recomendação**: A análise sugere {acao_texto} neste momento."
+	)
+
+
+def _gerar_insight_ia(
+	row: dict,
+	prob_perder: float,
+	valor_condenacao_estimado: float,
+	expected_loss: float,
+	limiar: float,
+	sugestao_acao: str,
+) -> str:
+	insight_default = _insight_fallback(
+		row=row,
+		prob_perder=prob_perder,
+		valor_condenacao_estimado=valor_condenacao_estimado,
+		expected_loss=expected_loss,
+		limiar=limiar,
+		sugestao_acao=sugestao_acao,
+	)
+
+	api_key = os.getenv("OPENAI_API_KEY")
+	if not api_key or OpenAI is None:
+		return insight_default
+
+	try:
+		client = OpenAI(api_key=api_key)
+		model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+		# Extrai fatores em linguagem natural
+		risk_keys = [
+			"doc_score",
+			"comprovante_de_credito",
+			"sub_assunto",
+			"qtd_docs",
+			"demonstrativo_de_evolucao_da_divida",
+		]
+		cost_keys = [
+			"valor_da_causa",
+			"doc_score",
+			"uf",
+			"qtd_docs",
+		]
+		fatores_risco = ", ".join(_select_top_fatores(row, risk_keys)) or "perfil típico do processo"
+		fatores_custo = ", ".join(_select_top_fatores(row, cost_keys)) or "características padrão"
+
+		prompt = (
+			"CONTEXTO OPERACIONAL:\n"
+			"Você está analisando um processo do Banco UFMG onde o cliente alega não reconhecer a contratação de um empréstimo "
+			"e sofre descontos em conta. O Banco recebe cerca de 15 mil processos assim por mês, dos quais ~5 mil envolvem "
+			"esse cenário específico de não reconhecimento de contratação. Sua função é auxiliar o advogado na decisão estratégica: "
+			"defender o caso no judiciário (arriscando uma condenação potencialmente cara) ou propor um acordo (investimento controlado para encerrar rápido).\n\n"
+			"NUANCES DO CONTEXTO:\n"
+			"• Alto volume: A consistência da política de acordos é crítica; decisões ad-hoc geram inconsistência e ineficiência.\n"
+			"• Risco de condenação: Se condenado, o Banco paga a indenização + custas judiciais + possível danos morais (impacto maior que acordo).\n"
+			"• Documentação: A presença de documentos específicos (comprovante de crédito, demonstrativo de evolução) afeta o risco real de condenação.\n"
+			"• Negociação: Um acordo bem estruturado encerra o caso rapidamente; um valor inadequado é rejeitado e perde-se tempo.\n\n"
+			"TAREFA:\n"
+			"Analise este processo específico e forneça um parecer estruturado para o advogado. "
+			"Responda em português do Brasil com exatamente 3 parágrafos (máximo 2-3 frases cada). "
+			"\n"
+			"Estrutura obrigatória:\n"
+			"1º parágrafo - RISCO: descreva o nível de risco de condenação considerando os elementos: " + fatores_risco + "\n"
+			"2º parágrafo - EXPOSIÇÃO FINANCEIRA: estime o impacto financeiro potencial considerando: " + fatores_custo + "\n"
+			"3º parágrafo - RECOMENDAÇÃO ESTRATÉGICA: conclua se é mais prudente defender ou propor acordo, considerando o custo-benefício\n"
+			"\n"
+			"Dados quantitativos para análise:\n"
+			f"- Risco estimado de condenação: {prob_perder:.0%}\n"
+			f"- Potencial condenação: R$ {valor_condenacao_estimado:,.0f}\n"
+			f"- Sugestão do modelo: {'Propor acordo' if sugestao_acao == 'PROPOR_ACORDO' else 'Defender'}\n"
+			"\n"
+			"Tom: profissional, objetivo, focado em impacto prático para a política do Banco. "
+			"Não mencione variáveis técnicas ou números de modelo. Fale como um analista de risco sênior."
+		)
+
+		response = client.chat.completions.create(
+			model=model_name,
+			messages=[
+				{
+					"role": "system",
+					"content": "Você é um analista jurídico experiente que fornece pareceres claros e práticos para advogados.",
+				},
+				{"role": "user", "content": prompt},
+			],
+			temperature=0.3,
+			max_tokens=400,
+		)
+		insight = (response.choices[0].message.content or "").strip()
+		return insight or insight_default
+	except Exception:
+		return insight_default
 
 
 def cases_list_page(request):
@@ -169,6 +332,37 @@ def case_detail_page(request, case_id):
 		recommendation = legal_case.recommendation
 	except ObjectDoesNotExist:
 		recommendation = None
+
+	if recommendation is None:
+		recommendation = gerar_recomendacao_caso(legal_case)
+
+	# Gera o insight de IA apenas sob demanda ao abrir os detalhes do processo (primeira vez).
+	if not (recommendation.insight_ia or '').strip():
+		# Recalcula os valores para o insight (garante consistência)
+		risk_ckpt, cost_ckpt = _load_checkpoints()
+		row = _build_feature_row(legal_case)
+		df_one = pd.DataFrame([row])
+		
+		x_risk = _make_matrix(df_one, risk_ckpt, "risk_features")
+		prob_perder = float(risk_ckpt["model"].predict_proba(x_risk)[:, 1][0])
+		
+		x_cost = _make_matrix(df_one, cost_ckpt, "cost_features")
+		valor_condenacao_estimado = float(np.expm1(cost_ckpt["model"].predict(x_cost))[0])
+		valor_condenacao_estimado = max(0.0, valor_condenacao_estimado)
+		
+		expected_loss = prob_perder * valor_condenacao_estimado
+		alpha = 0.60  # settlement_factor padrão
+		
+		insight_ia = _gerar_insight_ia(
+			row=row,
+			prob_perder=prob_perder,
+			valor_condenacao_estimado=valor_condenacao_estimado,
+			expected_loss=expected_loss,
+			limiar=alpha,
+			sugestao_acao=recommendation.sugestao_acao,
+		)
+		recommendation.insight_ia = insight_ia
+		recommendation.save(update_fields=['insight_ia'])
 
 	try:
 		action = legal_case.action
@@ -399,22 +593,19 @@ def monitoramento_efetividade_page(request):
 
 def gerar_recomendacao_caso(
 	case: LegalCase,
-	limiar_fixo: float = 3000.0,
-	comparar_com_valor_causa: bool = True,
 	settlement_factor: float = 0.60,
 ) -> CaseRecommendation:
 	"""
 	Recebe LegalCase, roda os 2 modelos, calcula expected_loss
 	e cria/atualiza CaseRecommendation.
+	Gera APENAS as previsões numéricas. Insight IA é gerado on-demand em case_detail_page.
 	
 	Args:
 		case: LegalCase instance
-		limiar_fixo: Limiar de decisão em reais (default 3000)
-		comparar_com_valor_causa: Se True, usa valor_causa como limiar se > 0
-		settlement_factor: Fator multiplicador para valor de acordo (0.30 = 30% do expected_loss)
+		settlement_factor: Limiar de prob_perder para sugerir acordo (default 0.60 = 60%)
 	
 	Returns:
-		CaseRecommendation criado ou atualizado
+		CaseRecommendation criado ou atualizado (sem insight_ia)
 	"""
 	risk_ckpt, cost_ckpt = _load_checkpoints()
 
@@ -432,12 +623,11 @@ def gerar_recomendacao_caso(
 
 	# expected_loss
 	expected_loss = prob_perder * valor_condenacao_estimado
-
+	
 	# ========================
-	# FRONTEIRA DE DECISAO CORRETA
+	# DECISÃO CORRETA
 	# ========================
-
-	alpha = settlement_factor   # mesma logica do acordo
+	alpha = settlement_factor
 
 	if prob_perder > alpha:
 		sugestao_acao = "PROPOR_ACORDO"
@@ -453,6 +643,7 @@ def gerar_recomendacao_caso(
 			"valor_esperado_condenacao": _to_decimal(expected_loss, "0.01"),
 			"sugestao_acao": sugestao_acao,
 			"valor_para_acordo": (_to_decimal(valor_para_acordo, "0.01") if valor_para_acordo is not None else None),
+			"insight_ia": "",
 		},
 	)
 	return recommendation

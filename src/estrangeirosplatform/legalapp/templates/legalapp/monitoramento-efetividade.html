@@ -16,59 +16,157 @@
         <section class="hero">
             <div>
                 <h1>Monitoramento de efetividade</h1>
-                <p>Indicadores para avaliar se a política está gerando resultado jurídico e financeiro.</p>
+                <p>Compara resultados jurídicos e financeiros quando o advogado segue a recomendação da IA versus quando não segue.</p>
             </div>
         </section>
 
         <section class="kpis">
             <article class="kpi-card">
-                <h2>{{ total }}</h2>
+                <span class="info-tip" tabindex="0" data-tip="Total de casos que possuem tanto a ação do advogado (LawyerAction) quanto a recomendação da IA (CaseRecommendation) registradas. É o denominador desta análise.">i</span>
+                <h2>{{ total|floatformat:"0g" }}</h2>
                 <p>Casos avaliados</p>
             </article>
             <article class="kpi-card">
-                <h2>{{ taxa_efetividade_pct|floatformat:1 }}%</h2>
-                <p>Taxa geral de efetividade</p>
+                <span class="info-tip" tabindex="0" data-tip="Percentual de casos em que a ação do advogado (DEFENDER ou PROPOR_ACORDO) coincidiu com a sugestão da IA. Mede adesão à política.">i</span>
+                <h2>{{ taxa_aderencia_pct|floatformat:"1g" }}%</h2>
+                <p>Aderência à recomendação (ação)</p>
             </article>
             <article class="kpi-card">
-                <h2>{{ taxa_exito_defesa_pct|floatformat:1 }}%</h2>
+                <span class="info-tip" tabindex="0" data-tip="Dos casos em que a IA recomendou PROPOR_ACORDO, percentual em que o advogado efetivamente propôs acordo. Atende diretamente ao requisito de 'taxa de aceitação dos acordos'.">i</span>
+                <h2>{{ taxa_aceitacao_acordos_sugeridos_pct|floatformat:"1g" }}%</h2>
+                <p>Aceitação de acordos sugeridos pela IA</p>
+            </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Percentual de casos em que o custo observado (valor de acordo ou de condenação) ficou até 20% acima da condenação esperada pelo modelo. Custos abaixo do esperado também contam como efetivos — quanto menor, melhor.">i</span>
+                <h2>{{ taxa_efetividade_pct|floatformat:"1g" }}%</h2>
+                <p>Taxa geral de efetividade financeira</p>
+            </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Dentre as defesas com resultado macro registrado, percentual com resultado EXITO (casos em que o banco venceu).">i</span>
+                <h2>{{ taxa_exito_defesa_pct|floatformat:"1g" }}%</h2>
                 <p>Taxa de êxito nas defesas</p>
             </article>
             <article class="kpi-card">
-                <h2>{{ taxa_aceitacao_acordos_pct|floatformat:1 }}%</h2>
-                <p>Taxa de aceitação dos acordos (proxy operacional)</p>
+                <span class="info-tip" tabindex="0" data-tip="Soma de (condenação esperada − custo observado) em todos os casos. Mede quanto foi economizado frente à exposição prevista pelo modelo. Atende ao requisito de 'economia em relação às condenações judiciais'.">i</span>
+                <h2>R$ {{ economia_liquida_total|floatformat:"2g" }}</h2>
+                <p>Economia líquida total vs. condenação esperada</p>
             </article>
             <article class="kpi-card">
-                <h2>{{ taxa_conversao_acordo_pct|floatformat:1 }}%</h2>
-                <p>Conversão em acordo quando recomendado</p>
-            </article>
-            <article class="kpi-card">
-                <h2>R$ {{ custo_total_politica|floatformat:2 }}</h2>
-                <p>Custo total observado</p>
-            </article>
-            <article class="kpi-card">
-                <h2>R$ {{ custo_medio_caso|floatformat:2 }}</h2>
-                <p>Custo médio por caso</p>
-            </article>
-            <article class="kpi-card">
-                <h2>R$ {{ valor_esperado_total|floatformat:2 }}</h2>
-                <p>Exposição esperada total (modelo)</p>
-            </article>
-            <article class="kpi-card">
-                <h2>R$ {{ economia_liquida_total|floatformat:2 }}</h2>
-                <p>Economia líquida vs. condenação esperada</p>
-            </article>
-            <article class="kpi-card">
-                <h2>R$ {{ economia_media_por_acordo|floatformat:2 }}</h2>
+                <span class="info-tip" tabindex="0" data-tip="Economia líquida total dividida pela quantidade de acordos comparáveis (acordos com condenação esperada > 0). Normaliza a economia para comparar desempenho entre períodos ou coortes.">i</span>
+                <h2>R$ {{ economia_media_por_acordo|floatformat:"2g" }}</h2>
                 <p>Economia média por acordo</p>
             </article>
             <article class="kpi-card">
-                <h2>{{ taxa_casos_custo_abaixo_esperado_pct|floatformat:1 }}%</h2>
-                <p>Casos com custo abaixo do esperado</p>
+                <span class="info-tip" tabindex="0" data-tip="Soma da condenação esperada pelo modelo nos casos em que o advogado defendeu e obteve resultado macro EXITO. Isola a economia gerada pela estratégia de defesa.">i</span>
+                <h2>R$ {{ exposicao_evitada_defesas_exito|floatformat:"2g" }}</h2>
+                <p>Exposição evitada em defesas com êxito</p>
             </article>
             <article class="kpi-card">
-                <h2>R$ {{ exposicao_evitada_defesas_exito|floatformat:2 }}</h2>
-                <p>Exposição evitada nas defesas com êxito</p>
+                <span class="info-tip" tabindex="0" data-tip="Soma dos custos reais: valor do acordo nos casos de acordo, valor de condenação nos casos de defesa (0 quando a defesa venceu sem condenação). É o numerador do gasto efetivo.">i</span>
+                <h2>R$ {{ custo_total_politica|floatformat:"2g" }}</h2>
+                <p>Custo total observado</p>
             </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Soma de valor_esperado_condenacao (probabilidade de perder × condenação estimada) em todos os casos. É a baseline contra a qual economia e custo são comparados.">i</span>
+                <h2>R$ {{ valor_esperado_total|floatformat:"2g" }}</h2>
+                <p>Exposição esperada total (modelo)</p>
+            </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Média com sinal do shift percentual entre valor acordado e valor recomendado. Positivo = advogado tende a acordar acima da recomendação; negativo = tende a acordar abaixo.">i</span>
+                <h2>{{ shift_medio_pct|floatformat:"1g" }}%</h2>
+                <p>Viés médio do valor de acordo</p>
+            </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Média do módulo do shift percentual. Mede quão distante, em magnitude, os acordos ficam da recomendação — independente da direção.">i</span>
+                <h2>{{ shift_abs_medio_pct|floatformat:"1g" }}%</h2>
+                <p>Desvio médio absoluto do valor de acordo</p>
+            </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Percentual de acordos cujo valor está a mais de 20% (acima ou abaixo) do valor recomendado pela IA. Usa a mesma faixa do campo valor_acordo_in_range.">i</span>
+                <h2>{{ taxa_acordos_fora_faixa_pct|floatformat:"1g" }}%</h2>
+                <p>Acordos fora da faixa ±20% da recomendação</p>
+            </article>
+            <article class="kpi-card">
+                <span class="info-tip" tabindex="0" data-tip="Contagens direcionais: quantos acordos ficaram acima (shift > 0) versus abaixo (shift < 0) da recomendação. O total entre parênteses ({{ shift_count }}) é a base de acordos comparáveis.">i</span>
+                <h2>{{ shift_acima_recomendado|floatformat:"0g" }} / {{ shift_abaixo_recomendado|floatformat:"0g" }}</h2>
+                <p>Acordos acima / abaixo da recomendação ({{ shift_count|floatformat:"0g" }} comparáveis)</p>
+            </article>
+        </section>
+
+        <section class="table-card">
+            <h3>Seguiu vs. não seguiu a recomendação</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>Casos</th>
+                            <th>Custo total</th>
+                            <th>Custo médio</th>
+                            <th>Economia líquida total</th>
+                            <th>Economia média</th>
+                            <th>Defesas</th>
+                            <th>Êxito defesa</th>
+                            <th>Acordos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge ok">Seguiu recomendação</span></td>
+                            <td>{{ seguiu.count|floatformat:"0g" }}</td>
+                            <td>R$ {{ seguiu.custo_total|floatformat:"2g" }}</td>
+                            <td>R$ {{ seguiu_custo_medio|floatformat:"2g" }}</td>
+                            <td>R$ {{ seguiu.economia_total|floatformat:"2g" }}</td>
+                            <td>R$ {{ seguiu_economia_media|floatformat:"2g" }}</td>
+                            <td>{{ seguiu.defesas|floatformat:"0g" }}</td>
+                            <td>{{ seguiu_taxa_exito_defesa_pct|floatformat:"1g" }}%</td>
+                            <td>{{ seguiu.acordos|floatformat:"0g" }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge no">Não seguiu</span></td>
+                            <td>{{ nao_seguiu.count|floatformat:"0g" }}</td>
+                            <td>R$ {{ nao_seguiu.custo_total|floatformat:"2g" }}</td>
+                            <td>R$ {{ nao_seguiu_custo_medio|floatformat:"2g" }}</td>
+                            <td>R$ {{ nao_seguiu.economia_total|floatformat:"2g" }}</td>
+                            <td>R$ {{ nao_seguiu_economia_media|floatformat:"2g" }}</td>
+                            <td>{{ nao_seguiu.defesas|floatformat:"0g" }}</td>
+                            <td>{{ nao_seguiu_taxa_exito_defesa_pct|floatformat:"1g" }}%</td>
+                            <td>{{ nao_seguiu.acordos|floatformat:"0g" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="table-card">
+            <h3>Matriz de decisão (recomendado × tomado)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Recomendado \ Tomado</th>
+                            <th>DEFENDER</th>
+                            <th>PROPOR_ACORDO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for linha in confusion_matrix %}
+                            <tr>
+                                <td><strong>{{ linha.recomendado }}</strong></td>
+                                {% for cell in linha.cells %}
+                                    <td>
+                                        {% if cell.match %}
+                                            <span class="badge ok">{{ cell.count|floatformat:"0g" }} ({{ cell.pct|floatformat:"1g" }}%)</span>
+                                        {% else %}
+                                            <span class="badge no">{{ cell.count|floatformat:"0g" }} ({{ cell.pct|floatformat:"1g" }}%)</span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section class="table-card">
@@ -80,8 +178,10 @@
                             <th>Processo</th>
                             <th>Recomendação</th>
                             <th>Ação tomada</th>
+                            <th>Seguiu?</th>
                             <th>Resultado macro</th>
                             <th>Valor acordo</th>
+                            <th>Shift acordo (%)</th>
                             <th>Valor condenação</th>
                             <th>Condenação esperada</th>
                             <th>Economia líquida</th>
@@ -96,12 +196,20 @@
                                 <td><a href="{% url 'legalapp:case-detail' row.case_id %}">{{ row.numero_processo }}</a></td>
                                 <td>{{ row.acao_recomendada }}</td>
                                 <td>{{ row.acao_tomada }}</td>
+                                <td>
+                                    {% if row.seguiu_recomendacao %}
+                                        <span class="badge ok">Sim</span>
+                                    {% else %}
+                                        <span class="badge no">Não</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ row.resultado_macro|default:'-' }}</td>
-                                <td>{{ row.valor_acordo|default:'-' }}</td>
-                                <td>{{ row.valor_condenacao|default:'-' }}</td>
-                                <td>{{ row.valor_esperado_condenacao|default:'-' }}</td>
-                                <td>R$ {{ row.economia_liquida|floatformat:2 }}</td>
-                                <td>R$ {{ row.custo|floatformat:2 }}</td>
+                                <td>{% if row.valor_acordo is not None %}R$ {{ row.valor_acordo|floatformat:"2g" }}{% else %}-{% endif %}</td>
+                                <td>{% if row.shift_valor_pct is not None %}{{ row.shift_valor_pct|floatformat:"2g" }}%{% else %}-{% endif %}</td>
+                                <td>{% if row.valor_condenacao is not None %}R$ {{ row.valor_condenacao|floatformat:"2g" }}{% else %}-{% endif %}</td>
+                                <td>{% if row.valor_esperado_condenacao is not None %}R$ {{ row.valor_esperado_condenacao|floatformat:"2g" }}{% else %}-{% endif %}</td>
+                                <td>R$ {{ row.economia_liquida|floatformat:"2g" }}</td>
+                                <td>R$ {{ row.custo|floatformat:"2g" }}</td>
                                 <td>
                                     {% if row.efetivo is None %}
                                         <span class="badge na">N/A</span>
@@ -115,7 +223,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="11" class="empty">Nenhum caso disponível para monitoramento.</td>
+                                <td colspan="13" class="empty">Nenhum caso disponível para monitoramento.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

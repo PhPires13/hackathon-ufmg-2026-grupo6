@@ -466,6 +466,17 @@ def monitoramento_efetividade_page(request):
 		.filter(action__isnull=False, recommendation__isnull=False)
 	)
 
+	def _empty_group():
+		return {
+			'count': 0,
+			'custo_total': 0.0,
+			'economia_total': 0.0,
+			'valor_esperado_total': 0.0,
+			'defesas': 0,
+			'defesas_exito': 0,
+			'acordos': 0,
+		}
+
 	total = cases.count()
 	if total == 0:
 		context = {
@@ -474,6 +485,8 @@ def monitoramento_efetividade_page(request):
 			'taxa_exito_defesa_pct': 0.0,
 			'taxa_aceitacao_acordos_pct': 0.0,
 			'taxa_conversao_acordo_pct': 0.0,
+			'taxa_aderencia_pct': 0.0,
+			'taxa_aceitacao_acordos_sugeridos_pct': 0.0,
 			'custo_total_politica': 0.0,
 			'custo_medio_caso': 0.0,
 			'valor_esperado_total': 0.0,
@@ -481,6 +494,21 @@ def monitoramento_efetividade_page(request):
 			'economia_media_por_acordo': 0.0,
 			'taxa_casos_custo_abaixo_esperado_pct': 0.0,
 			'exposicao_evitada_defesas_exito': 0.0,
+			'shift_medio_pct': 0.0,
+			'shift_abs_medio_pct': 0.0,
+			'taxa_acordos_fora_faixa_pct': 0.0,
+			'shift_count': 0,
+			'shift_acima_recomendado': 0,
+			'shift_abaixo_recomendado': 0,
+			'seguiu': _empty_group(),
+			'nao_seguiu': _empty_group(),
+			'seguiu_economia_media': 0.0,
+			'nao_seguiu_economia_media': 0.0,
+			'seguiu_custo_medio': 0.0,
+			'nao_seguiu_custo_medio': 0.0,
+			'seguiu_taxa_exito_defesa_pct': 0.0,
+			'nao_seguiu_taxa_exito_defesa_pct': 0.0,
+			'confusion_matrix': [],
 			'rows': [],
 			'active_nav': 'monitoramento-efetividade',
 		}
@@ -499,6 +527,28 @@ def monitoramento_efetividade_page(request):
 	qtd_acordos_comparaveis = 0
 	qtd_casos_abaixo_esperado = 0
 	exposicao_evitada_defesas_exito = 0.0
+
+	# Grupos: seguiu vs nao seguiu a recomendacao
+	grupos = {'seguiu': _empty_group(), 'nao_seguiu': _empty_group()}
+
+	# Matriz de confusao recomendado x tomado
+	acoes = ('DEFENDER', 'PROPOR_ACORDO')
+	confusion_counts = {(r, t): 0 for r in acoes for t in acoes}
+
+	# Aceitacao de acordos sugeridos pela IA
+	acordos_sugeridos = 0
+	acordos_aceitos_quando_sugerido = 0
+	aderentes_acao = 0
+
+	# Shift do valor de acordo (%) - apenas quando IA e advogado optaram por acordo
+	shift_sum = 0.0
+	shift_abs_sum = 0.0
+	shift_count = 0
+	shift_acima = 0
+	shift_abaixo = 0
+	shift_fora_faixa = 0
+
+	# Economia acumulada por grupo de aderencia (para grafico)
 	rows = []
 
 	for case in cases:
@@ -507,62 +557,106 @@ def monitoramento_efetividade_page(request):
 
 		if recommendation.sugestao_acao == 'PROPOR_ACORDO':
 			total_recomendado_acordo += 1
+			acordos_sugeridos += 1
+			if action.acao == 'PROPOR_ACORDO':
+				acordos_aceitos_quando_sugerido += 1
+
+		seguiu = bool(action.same_action_taken)
+		if seguiu:
+			aderentes_acao += 1
+		grp_key = 'seguiu' if seguiu else 'nao_seguiu'
+		grupos[grp_key]['count'] += 1
+
+		key = (recommendation.sugestao_acao, action.acao)
+		if key in confusion_counts:
+			confusion_counts[key] += 1
 
 		custo = 0.0
 		valor_esperado = float(recommendation.valor_esperado_condenacao or 0)
 		economia_liquida = 0.0
 		efetivo = None
 		criterio = 'Sem criterio'
+		tem_custo_observado = False
 
 		if action.acao == 'DEFENDER':
 			if action.resultado_macro:
 				defesas_concluidas += 1
-				efetivo = action.resultado_macro == 'EXITO'
+				grupos[grp_key]['defesas'] += 1
+				efetivo_defesa = action.resultado_macro == 'EXITO'
+				efetivo = efetivo_defesa
 				if efetivo:
 					defesas_exito += 1
-				criterio = 'Defesa efetiva quando resultado macro = EXITO'
-				qtd_avaliados += 1
-				if efetivo:
-					qtd_efetivos += 1
+					grupos[grp_key]['defesas_exito'] += 1
+				criterio = 'Defesa com exito no resultado macro'
 
 			if action.valor_condenacao is not None:
 				custo = float(action.valor_condenacao)
+				tem_custo_observado = True
+			elif action.resultado_macro == 'EXITO':
+				# Defesa vencida sem condenacao: custo 0 contabilizado
+				custo = 0.0
+				tem_custo_observado = True
 
 			if efetivo:
 				exposicao_evitada_defesas_exito += valor_esperado
 
 		elif action.acao == 'PROPOR_ACORDO':
 			total_acao_acordo += 1
-			total_acordos_aceitos += 1  # proxy: acordo registrado com valor informado
+			grupos[grp_key]['acordos'] += 1
 			if action.valor_acordo is not None:
 				custo = float(action.valor_acordo)
+				tem_custo_observado = True
+				total_acordos_aceitos += 1  # proxy: acordo registrado com valor informado
 
 			if recommendation.sugestao_acao == 'PROPOR_ACORDO' and action.valor_acordo_in_range is not None:
-				efetivo = bool(action.valor_acordo_in_range)
-				criterio = 'Acordo efetivo quando valor fica na faixa de aderencia'
-				qtd_avaliados += 1
-				if efetivo:
-					qtd_efetivos += 1
+				criterio = 'Acordo com faixa de aderencia calculada'
 			else:
-				criterio = 'Acordo sem faixa comparavel para avaliacao'
+				criterio = 'Acordo sem faixa de aderencia comparavel'
+
+		if valor_esperado > 0 and tem_custo_observado:
+			limite_superior = valor_esperado * 1.20
+			efetivo = custo <= limite_superior
+			criterio = 'Efetivo financeiro quando custo observado fica ate +20% da condenacao esperada'
+			qtd_avaliados += 1
+			if efetivo:
+				qtd_efetivos += 1
 
 		if valor_esperado > 0:
 			total_valor_esperado += valor_esperado
 			economia_liquida = valor_esperado - custo
 			economia_liquida_total += economia_liquida
+			grupos[grp_key]['valor_esperado_total'] += valor_esperado
+			grupos[grp_key]['economia_total'] += economia_liquida
 			qtd_acordos_comparaveis += 1 if action.acao == 'PROPOR_ACORDO' else 0
 			if custo <= valor_esperado:
 				qtd_casos_abaixo_esperado += 1
 
 		total_custo += custo
+		grupos[grp_key]['custo_total'] += custo
+
+		shift_valor_pct = (
+			float(action.shift_valor_acordo) if action.shift_valor_acordo is not None else None
+		)
+		if shift_valor_pct is not None:
+			shift_sum += shift_valor_pct
+			shift_abs_sum += abs(shift_valor_pct)
+			shift_count += 1
+			if shift_valor_pct > 0:
+				shift_acima += 1
+			elif shift_valor_pct < 0:
+				shift_abaixo += 1
+			if abs(shift_valor_pct) > 20:
+				shift_fora_faixa += 1
 
 		rows.append({
 			'case_id': case.id,
 			'numero_processo': case.numero_processo,
 			'acao_recomendada': recommendation.sugestao_acao,
 			'acao_tomada': action.acao,
+			'seguiu_recomendacao': seguiu,
 			'resultado_macro': action.resultado_macro,
 			'valor_acordo': action.valor_acordo,
+			'shift_valor_pct': shift_valor_pct,
 			'valor_condenacao': action.valor_condenacao,
 			'valor_esperado_condenacao': recommendation.valor_esperado_condenacao,
 			'economia_liquida': economia_liquida,
@@ -571,19 +665,72 @@ def monitoramento_efetividade_page(request):
 			'criterio': criterio,
 		})
 
+	def _safe_div(a, b):
+		return (a / b) if b else 0.0
+
+	seguiu_count = grupos['seguiu']['count']
+	nao_seguiu_count = grupos['nao_seguiu']['count']
+
+	seguiu_economia_media = _safe_div(grupos['seguiu']['economia_total'], seguiu_count)
+	nao_seguiu_economia_media = _safe_div(grupos['nao_seguiu']['economia_total'], nao_seguiu_count)
+	seguiu_custo_medio = _safe_div(grupos['seguiu']['custo_total'], seguiu_count)
+	nao_seguiu_custo_medio = _safe_div(grupos['nao_seguiu']['custo_total'], nao_seguiu_count)
+
+	seguiu_taxa_exito_defesa_pct = _safe_div(
+		grupos['seguiu']['defesas_exito'], grupos['seguiu']['defesas']
+	) * 100
+	nao_seguiu_taxa_exito_defesa_pct = _safe_div(
+		grupos['nao_seguiu']['defesas_exito'], grupos['nao_seguiu']['defesas']
+	) * 100
+
+	# Matriz de confusao formatada para template
+	confusion_matrix = []
+	for r in acoes:
+		linha = {'recomendado': r, 'cells': []}
+		for t in acoes:
+			qtd = confusion_counts[(r, t)]
+			linha['cells'].append({
+				'tomada': t,
+				'count': qtd,
+				'pct': (qtd / total) * 100 if total else 0.0,
+				'match': r == t,
+			})
+		confusion_matrix.append(linha)
+
+	shift_medio_pct = _safe_div(shift_sum, shift_count)
+	shift_abs_medio_pct = _safe_div(shift_abs_sum, shift_count)
+	taxa_acordos_fora_faixa_pct = _safe_div(shift_fora_faixa, shift_count) * 100
+
 	context = {
 		'total': total,
-		'taxa_efetividade_pct': ((qtd_efetivos / qtd_avaliados) * 100) if qtd_avaliados else 0.0,
-		'taxa_exito_defesa_pct': ((defesas_exito / defesas_concluidas) * 100) if defesas_concluidas else 0.0,
-		'taxa_aceitacao_acordos_pct': ((total_acordos_aceitos / total_acao_acordo) * 100) if total_acao_acordo else 0.0,
-		'taxa_conversao_acordo_pct': ((total_acao_acordo / total_recomendado_acordo) * 100) if total_recomendado_acordo else 0.0,
+		'taxa_efetividade_pct': _safe_div(qtd_efetivos, qtd_avaliados) * 100,
+		'taxa_exito_defesa_pct': _safe_div(defesas_exito, defesas_concluidas) * 100,
+		'taxa_aceitacao_acordos_pct': _safe_div(total_acordos_aceitos, total_acao_acordo) * 100,
+		'taxa_conversao_acordo_pct': _safe_div(total_acao_acordo, total_recomendado_acordo) * 100,
+		'taxa_aderencia_pct': _safe_div(aderentes_acao, total) * 100,
+		'taxa_aceitacao_acordos_sugeridos_pct': _safe_div(acordos_aceitos_quando_sugerido, acordos_sugeridos) * 100,
 		'custo_total_politica': total_custo,
-		'custo_medio_caso': (total_custo / total) if total else 0.0,
+		'custo_medio_caso': _safe_div(total_custo, total),
 		'valor_esperado_total': total_valor_esperado,
 		'economia_liquida_total': economia_liquida_total,
-		'economia_media_por_acordo': (economia_liquida_total / qtd_acordos_comparaveis) if qtd_acordos_comparaveis else 0.0,
-		'taxa_casos_custo_abaixo_esperado_pct': ((qtd_casos_abaixo_esperado / total) * 100) if total else 0.0,
+		'economia_media_por_acordo': _safe_div(economia_liquida_total, qtd_acordos_comparaveis),
+		'taxa_casos_custo_abaixo_esperado_pct': _safe_div(qtd_casos_abaixo_esperado, total) * 100,
 		'exposicao_evitada_defesas_exito': exposicao_evitada_defesas_exito,
+		'shift_medio_pct': shift_medio_pct,
+		'shift_abs_medio_pct': shift_abs_medio_pct,
+		'taxa_acordos_fora_faixa_pct': taxa_acordos_fora_faixa_pct,
+		'shift_count': shift_count,
+		'shift_acima_recomendado': shift_acima,
+		'shift_abaixo_recomendado': shift_abaixo,
+		'seguiu': grupos['seguiu'],
+		'nao_seguiu': grupos['nao_seguiu'],
+		'seguiu_economia_media': seguiu_economia_media,
+		'nao_seguiu_economia_media': nao_seguiu_economia_media,
+		'seguiu_custo_medio': seguiu_custo_medio,
+		'nao_seguiu_custo_medio': nao_seguiu_custo_medio,
+		'seguiu_taxa_exito_defesa_pct': seguiu_taxa_exito_defesa_pct,
+		'nao_seguiu_taxa_exito_defesa_pct': nao_seguiu_taxa_exito_defesa_pct,
+		'confusion_matrix': confusion_matrix,
 		'rows': rows,
 		'active_nav': 'monitoramento-efetividade',
 	}

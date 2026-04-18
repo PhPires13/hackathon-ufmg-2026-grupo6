@@ -7,6 +7,9 @@ numpy
 openai
 pandas
 pypdf
+python-docx
+pytesseract
+Pillow
 python-dateutil
 pytz
 scipy

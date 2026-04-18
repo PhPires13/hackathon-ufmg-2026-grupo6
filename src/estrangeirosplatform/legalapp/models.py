@@ -165,6 +165,7 @@ class CaseRecommendation(TimeStampedModel):
 		null=True,
 		validators=[MinValueValidator(0)],
 	)
+	insight_ia = models.TextField(blank=True, default='')
 
 	class Meta:
 		ordering = ['-created_at']

@@ -1,81 +1,52 @@
-# Setup e Execução
+# Setup e Execucao
 
-> Preencha este arquivo com as instruções específicas da sua solução.
+Guia minimo para instalar as dependencias e subir o Django localmente.
 
----
+## Pre-requisitos
 
-## Pré-requisitos
+- Python 3.11+
+- pip
 
-Liste aqui as dependências necessárias para rodar a solução:
+## Passo a passo
 
-- [ ] ...
-- [ ] ...
+Na raiz do repositorio: `pip install -r requirements.txt`
 
-## Variáveis de Ambiente
+Como o agente de IA usa a API da OpenAI, configure a chave antes de subir o projeto:
+`cp .env.example .env`
 
-Crie um arquivo `.env` na raiz do projeto com as variáveis necessárias:
+No arquivo `.env`, preencha pelo menos:
 
 ```env
-# Exemplo — adapte conforme sua solução
-OPENAI_API_KEY=sua_chave_aqui
+OPENAI_API_KEY='sua_chave_aqui'
 ```
 
-> **Nunca commite o arquivo `.env` com credenciais reais.**  
-> Um arquivo `.env.example` com as variáveis (sem valores) já está incluído neste repo.
-
-## Instalação
-
-```bash
-# Descreva aqui os passos de instalação
-```
-
-## Execução
-
-```bash
-# Descreva aqui como rodar a solução
-```
-
-## Dados
-
-Coloque os arquivos de dados fornecidos na pasta `data/`. Consulte [`data/README.md`](./data/README.md) para instruções detalhadas.
-
-Para importar os casos no Django a partir da nova estrutura (`sentencas.csv` + `subsidios/<id_processo>`):
+Depois entre na pasta do projeto Django e execute as migracoes do banco de dados:
 
 ```bash
 cd src/estrangeirosplatform
-
-# valida sem gravar
-python manage.py import_cases_from_data_dir --data-dir ../../data --dry-run
-
-# importa/atualiza no banco
-python manage.py import_cases_from_data_dir --data-dir ../../data
+python manage.py migrate
 ```
 
-O mesmo comando tambem aceita importacao por PDFs:
+Em seguida, inicie o servidor local: `python manage.py runserver`
+
+Acesso local:
+- http://127.0.0.1:8000/
+
+## Fluxo rapido
 
 ```bash
+pip install -r requirements.txt
+cp .env.example .env
+
 cd src/estrangeirosplatform
-
-# Um processo (pasta com PDFs)
-python manage.py import_cases_from_data_dir --source pdf --case-dir /caminho/para/pasta_do_caso
-
-# Varios processos (cada subpasta pode ter PDFs em autos/)
-python manage.py import_cases_from_data_dir --source pdf --processos-exemplo-dir ../../data/processos_exemplo
+python manage.py migrate
+python manage.py runserver
 ```
 
-Modo automatico (tenta PDF se informado e tambem importa estrutura data):
+## Troubleshooting
 
-```bash
-python manage.py import_cases_from_data_dir --source auto --data-dir ../../data --processos-exemplo-dir ../../data/processos_exemplo
-```
-
-## Estrutura do Projeto
-
-```
-├── src/          # código-fonte
-├── data/         # dados (não versionados — ver .gitignore)
-├── docs/         # apresentação e documentação
-├── .env.example  # variáveis de ambiente necessárias
-├── SETUP.md      # este arquivo
-└── README.md     # descrição do desafio
-```
+- `ModuleNotFoundError: No module named 'django'`:
+  ative o ambiente virtual e reinstale as dependencias.
+- Funcionalidades com IA nao respondem:
+  verifique se `OPENAI_API_KEY` foi preenchida no arquivo `.env`.
+- Porta ocupada: `python manage.py runserver 0.0.0.0:8001`

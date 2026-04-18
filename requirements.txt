@@ -4,6 +4,7 @@ asgiref
 joblib
 lightgbm
 numpy
+openai
 pandas
 pypdf
 python-docx
@@ -11,7 +12,6 @@ pytesseract
 Pillow
 python-dateutil
 pytz
-scikit-learn
 scipy
 six
 sqlparse

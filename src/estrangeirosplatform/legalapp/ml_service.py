@@ -145,13 +145,15 @@ def gerar_recomendacao_caso(
     # expected_loss
     expected_loss = prob_perder * valor_condenacao_estimado
 
-    # fronteira de decisão
-    valor_causa = float(case.valor_causa) if case.valor_causa is not None else 0.0
-    limiar = valor_causa if (comparar_com_valor_causa and valor_causa > 0) else limiar_fixo
+    # ========================
+    # FRONTEIRA DE DECISÃO CORRETA
+    # ========================
 
-    if expected_loss > limiar:
+    alpha = settlement_factor  # mesma lógica do acordo
+    
+    if prob_perder > alpha:
         sugestao_acao = "PROPOR_ACORDO"
-        valor_para_acordo = settlement_factor * valor_condenacao_estimado
+        valor_para_acordo = alpha * valor_condenacao_estimado
     else:
         sugestao_acao = "DEFENDER"
         valor_para_acordo = None
